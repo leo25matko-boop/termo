@@ -1,0 +1,67 @@
+{
+  "version": "0.3.28",
+  "size": 561522366,
+  "sha256": "f762247ad8a921cd9433d931a73c4e14d32d79acab6b793a323dff7c5c927c13",
+  "parts": [
+    {
+      "name": "dio-001.bin",
+      "size": 50331648,
+      "sha256": "ac12872bce24a676b8967a2db90cf466124096ba5ba7a0834885319d881cbaf6"
+    },
+    {
+      "name": "dio-002.bin",
+      "size": 50331648,
+      "sha256": "31c305ffd77810acc8aca3078632b3b3892896baea266d908f4be8c977399e75"
+    },
+    {
+      "name": "dio-003.bin",
+      "size": 50331648,
+      "sha256": "7bc632737f28425cad464477713039ea8b00aa194bbb65a0a8af7e279b48ea71"
+    },
+    {
+      "name": "dio-004.bin",
+      "size": 50331648,
+      "sha256": "883b0f232046ad179f6b7bafc5b8671376f8e97f2140955ae1c74fe440d34db2"
+    },
+    {
+      "name": "dio-005.bin",
+      "size": 50331648,
+      "sha256": "f5bcf8c4ce84ab319bd7dca12b6a73548de36c2489a41372a26751064edbaaeb"
+    },
+    {
+      "name": "dio-006.bin",
+      "size": 50331648,
+      "sha256": "f2349d7f71934b4d027e3516cf849f084f34992b6e819ece3e8514054f89e5dd"
+    },
+    {
+      "name": "dio-007.bin",
+      "size": 50331648,
+      "sha256": "1925e3b98886376eb27f20fa555fa5790ecec111c38e64395f54c75316f935e2"
+    },
+    {
+      "name": "dio-008.bin",
+      "size": 50331648,
+      "sha256": "7b3f363c29b54f1b8c74ed7f93582e05969154e19db98092555357e8c3a48ba7"
+    },
+    {
+      "name": "dio-009.bin",
+      "size": 50331648,
+      "sha256": "6e578ef41430d45b89b47da9bd35c3136dbed362d2c4c27ca73be085adce21d9"
+    },
+    {
+      "name": "dio-010.bin",
+      "size": 50331648,
+      "sha256": "67079001fc0734f8809d8fc9e8fb76e928b70f2d372f7290a468111b21dc4320"
+    },
+    {
+      "name": "dio-011.bin",
+      "size": 50331648,
+      "sha256": "bac24676513a868af95ba266f6a848c1ec5d44caf9daac9254e467d3b568b1d9"
+    },
+    {
+      "name": "dio-012.bin",
+      "size": 7874238,
+      "sha256": "1549f230eb83298c2dc80f0eac17499b473e70d2ba70253cad01d4710979bc4f"
+    }
+  ]
+}

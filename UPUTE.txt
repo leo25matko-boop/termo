@@ -1,0 +1,363 @@
+# L-Design za Windows 11 — samostalna aplikacija
+
+Verzija 0.3.25 dodaje vidljivu instalaciju u aplikaciji i ponovno pokretanje tek nakon uspješno provjerenog završetka. Razlikuje početno stanje, dovršenu provjeru i grešku te prikazuje provjerenu verziju i vrijeme provjere. Tehnički status ostaje u lokalnoj dijagnostici.
+
+Detaljne upute: [Nadogradnja 0.3.25](docs/nadogradnja-0.3.25.md).
+
+Dodana je zasebna kartica **Editor ponuda** za kuće i hale: povlačenje elemenata, uređivanje teksta i tablica, slike i reference, crtanje skica, vlastiti predlošci i višekratni blokovi s tvojim podacima. **AI editor** predlaže tekst i tablice za pregled; **Izračun i AI** otvara puni postojeći postupak kalkulacije i potvrde. Spremi raspored i provjeri PDF prije slanja. **Spremi kao novi** čuva novi predložak. Nespremljena dorada čuva se lokalno zasebno za svaku ponudu, uključujući promjenu ponude i ponovno otvaranje aplikacije. **Spremi raspored** potvrđuje izmjene u ponudi; novija spremljena verzija ne prepisuje se automatski starom doradom.
+
+Postojeću instalaciju nadogradi pokretanjem novog instalera dok je L-Design zatvoren. Prikazat će se **Nadogradi**; podaci ostaju sačuvani. Prije promjene strukture postojeće baze automatski nastaje kopija baze i ključa u `data\upgrade-backups`. Potpunu kopiju s dokumentima možeš izraditi kroz **L-Design → Sigurnosna kopija**.
+
+**Postavke → Web i nadogradnje** priprema buduću adresu i prikazuje trajni zapis lokalnih izmjena. Lokalno uređivanje radi i bez interneta. Prijenos tih izmjena na drugi uređaj još nije uključen: prvo treba postaviti glavni HTTPS poslužitelj, prenijeti podatke i dovršiti sigurno uparivanje/sinkronizaciju. Web i mobilni web trenutačno trebaju vezu. Tehnički koraci su u `docs/web-i-sinkronizacija.md` u izvornom kodu.
+
+Spremljeni potpisi ostaju sačuvani. Novi korisnik postavlja vlastiti potpis i logo, bez tuđih kontaktnih podataka. Dostupni su osvježavanje početnog pregleda i popravci otvaranja zapisa. Odgovor na kontakt formu koristi email posjetitelja iz obrasca; noreply adresa nije primatelj odgovora.
+
+AI ima dva načina: **RADNO** za podatke i poslove u L-Designu te **CHATGPT** za opći razgovor i izradu slika u aplikaciji. Glavna prijava povezuje se u **Postavke → AI asistent**. Konfigurator i mail odgovori koriste isti povezani račun. Dostupne mogućnosti ovise o računu i usluzi. Spremljene poveznice na zasebne ChatGPT projekte otvaraju te projekte; njihova povijest i projektno znanje ne prenose se automatski u poslovnu bazu.
+
+1. Preuzmi **POKRENI-INSTALACIJU.cmd** i pokreni ga.
+2. Klikni **Nadogradi** ako je aplikacija već instalirana ili **Instaliraj** kod prve instalacije, zatim **Završi** uz uključeno **Pokreni L-Design**.
+3. Pri pokretanju odaberi postojeći **Administrator**, **Moj korisnički račun**, **Napravi L-Design svojim** ili **Gost**. Nova instalacija ne sadrži administratorski račun niti nudi njegovu izradu. Registracija izrađuje običnog korisnika s praznim, odvojenim lokalnim podacima. Gost i dalje ulazi bez lozinke u odvojen probni prostor.
+
+Izvorni vlasnik u instaliranoj aplikaciji može odabrati **Zapamti vlasničku prijavu samo na ovom računalu**. Pamti se privatna lokalna sesija do 30 dana, vezana uz postojeći vlasnički profil, ovu instalaciju i računalo; lozinka se ne sprema kao tekst. Nakon nadogradnje prvo se jednom prijavi. Odjava ili istek traže novu prijavu. Nova javna instalacija i drugo računalo ne dobivaju tu prijavu. Ostali administratori, uključujući promovirane korisnike, i dalje se ponovno prijavljuju nakon pokretanja ili promjene prostora. Web administratorska prijava ne pamti se ovom opcijom. Sačuvane mail/ChatGPT prijave ostaju isključivo u pripadajućem lokalnom profilu. **Postavke → Korisnici** prijavljenom administratoru prikazuju lokalne račune, aktivnosti, blokiranje, isključivanje, promociju i Smeće. Izvorni vlasnik i trenutačni račun zaštićeni su od brisanja/blokade i promjene uloge. Vlastita lozinka obnavlja se na email svojeg računa. Računi drugih nepovezanih računala nisu dostupni do budućeg povezivanja s web poslužiteljem.
+
+Paket sadrži sve programe i bazu. Docker, WSL, Node.js, PostgreSQL ili preglednik ne instaliraju se zasebno. Za samu instalaciju i lokalne podatke nije potreban internet. Mail i AI funkcije trebaju internet i tvoje povezane račune u **Postavkama**.
+
+Otvara se jedan L-Design prozor. Baza, lokalni poslužitelj i obrada mailova rade nevidljivo u pozadini uz aplikaciju. Na Windowsu X nakon administratorske prijave skriva prozor uz sat i ostavlja sinkronizaciju i obavijesti u pozadini. Za potpuno zaustavljanje odaberi desni klik na ikonu uz sat → Potpuno zatvori L-Design. Gost i zaslon prijave zatvaraju se u cijelosti. PDF se izrađuje ugrađenim Chromiumom; preuzimanje dokumenta otvara uobičajeni prozor za spremanje datoteke.
+
+## Konfiguratori → Hale
+
+1. U lijevom izborniku otvori **Konfiguratori**, zatim **Otvori konfigurator hale**.
+2. Unesi dimenzije ili odaberi S/M/L. Odaberi profile, ojačanja uz strehu, razmake podrožnica i prečki, X/K/portalni okvir i površinsku zaštitu. Obloga se bira za svaki zid i krov: sendvič panel, trapezni lim ili bez obloge.
+3. U odjeljku otvora odaberi zid ili alat **Postavi vrata / prozor / svjetlosnu traku**, pa klikni zid u 3D prikazu. Položaj i mjere možeš precizno urediti. Vrata mogu biti rolo/sekcijska ili pješačka. Budući otvori ne umanjuju sadašnje panele.
+4. Cijene iz PDF predloška koriste se kao početne prodajne cijene bez PDV-a. Isključi **Koristi zadane cijene** za vlastite cijene kategorija. Na svakom otvoru možeš isključiti **Zadana cijena za ovu stavku** i unijeti svoju. Trapezni lim, pješačka vrata i svjetlosne trake nemaju cijenu u dostavljenom predlošku: unesi je prije prijenosa tih stavki.
+5. Upiši **kg/m²** za procjenu čelika. Unesena ukupna masa ima prednost. Geometrijski BOM ima zasebnu procjenu presjeka; **Koristi ovu procjenu kg/m²** primjenjuje je tek tvojim klikom. Profile, spojeve, masu i nosivost potvrđuje projektant.
+6. **BOM · Popis materijala** i **Rezna lista** prikazuju komade, profile i duljine. Možeš ih ispisati ili preuzeti u CSV. Rezna lista uzima nabavnu duljinu i širinu reza; komadi koji su predugi označeni su i nisu automatski spojeni.
+7. Namjesti pogled i klikni **Spremi prikaz**. Slike se čuvaju u aplikaciji uz naziv pogleda. U galeriji ih otvori ili preuzmi. **Spremi konfiguraciju** čuva postavke, a JSON izvoz/uvoz služi za prijenos konfiguracije.
+8. Odaberi povezani upit i klikni **Odaberi što prenosiš u ponudu**. Kvačicama biraš svaki podatak, zid, otvor, cijenu i sliku. **Ukloni sve oznake** ne prenosi ništa dok ne označiš željeno. Klikni **Prenesi samo označeno**; u ponudi provjeri količine i dovrši prazna obavezna polja.
+
+Konfigurator je samostalna izvedba u L-Designu prema pregledanim mogućnostima referentnog Bimtly demo konfiguratora; nije iframe niti preuzeti njihov programski paket. Radi lokalno. 3D prikaz treba WebGL; model i BOM služe za razradu, a ne zamjenjuju izvedbeni projekt.
+
+## Ponude za kuće i hale
+
+**Ponude → Nova ponuda** otvara dva predloška prema dostavljenim PDF-ovima. **Ručno** omogućuje unos svih podataka, **AI konfigurator** priprema prijedlog iz odabranog upita i provjerenih izvora, a **ChatGPT projekt** otvara tvoje postojeće projekte za hale ili kuće. Upute i povijest postojećeg projekta dostupni su u izvornom ChatGPT-u; radni AI im ne pristupa automatski.
+
+Za rad kroz postojeći projekt: klikni **Kopiraj podatke za ponudu**, otvori projekt, zalijepi podatke i zatraži JSON konfiguraciju. U aplikaciji otvori **Uvezi konfiguraciju iz ChatGPT projekta**, zalijepi JSON, pregledaj i tek tada primijeni prijedlog. Ne prenosi se ništa automatski iz privatne povijesti.
+
+Kuće imaju četiri varijante projekta/temelja, a hale šest kombinacija zaštite i panela. Prodajne cijene predložaka ne znače da je poznat nabavni trošak ili marža. **Preuzmi čisti tekstualni predložak** daje prazan obrazac. Količine i podaci investitora iz starih ponuda nisu zadani u novim ponudama.
+
+Nakon izračuna potvrdi konačne odluke, pregledaj i spremi finalni PDF, potvrdi da si ga pregledao te pripremi mail. PDF sadrži samo odabrane slike. Potpis i finalni PDF prikazani su u nacrtu; slanje zasebno potvrđuješ.
+
+## AI slike i renderi
+
+U **Studiju hale** slaži elemente povlačenjem, zaključaj pogled ili nacrtaj referentnu liniju. Sesija se automatski sprema po datumu i nazivu. Čisti 3D render radi odmah. **Izradi AI render** koristi glavni ChatGPT račun iz Postavki, bez zasebnog ključa. Dostupnost slika ovisi o prijavljenom računu i njegovim ograničenjima. Provjeri AI prikaz prije uključivanja u ponudu. Detaljni koraci: [Novi Studio i rad od upita do ponude](docs/nadogradnja-0.3.5.md).
+
+## Brži unos firmi, dobavljača i upita
+
+Obrasci nude **Popuni iz kontakata i prethodne pošte**. Upiši ime, firmu, email ili telefon i odaberi prijedlog. Popunjavaju se prazna polja; već upisana ostaju. Za staru poštu upiši najmanje tri znaka. Kontakt forma nudi podatke posjetitelja, a ne noreply adresu. U polju povezanog kontakta/firme možeš pretražiti zapise i izvan početnog popisa. Odabrani postojeći kontakt povezuje se s firmom pri spremanju i povijesna pošta ponovno grupira. Kontakt koji je već u drugoj firmi treba najprije pregledati; aplikacija ga ne premješta prešutno.
+
+## Povezivanje maila i uvoz povijesti
+
+Otvori **Postavke → Mail računi**. U „Povežite mail automatski” upiši email i lozinku pa klikni **Poveži mail**. Aplikacija traži postavke preko poznatih providera, Thunderbird baze, HTTPS autoconfiga domene, MX-a i DNS SRV zapisa. Prije spremanja provjerava IMAP i SMTP, bez slanja probne poruke. Ako provider nije prepoznat, pokušava uobičajene postavke `mail.tvoja-domena`; nisu zajamčene za svaki hosting.
+
+Ako povezivanje ne uspije, dostupne su **Napredne postavke · ručni unos**: hostovi, portovi, TLS/STARTTLS, zasebna korisnička imena i lozinke te nazivi mapa. Automatski pronađeni podaci ostaju dostupni za ispravak. Gmail, Yahoo i iCloud često trebaju posebnu lozinku za aplikaciju. Microsoft 365/Outlook može zabraniti prijavu lozinkom i zahtijevati OAuth; OAuth za Microsoft mail još nije ugrađen. Aplikacija ne može zaobići ograničenja providera.
+
+Nakon povezivanja automatski se uvozi sva dostupna povijest iz Primljeno, Poslano, Spam i arhivskih mapa, uključujući Gmail All Mail. Skice i Smeće se preskaču. Uvoz ide u ograničenim serijama, bez početnog vremenskog ograničenja; veliki sandučić može zahtijevati više ciklusa. Napredak vidiš u Postavkama i čuva se nakon zatvaranja. Početni uvoz ne mijenja poruke na poslužitelju. Otvaranje nepročitane primljene poruke označi je pročitanom i na serveru. Tvoje ručne radnje nad porukama sinkroniziraju se; pouzdano prepoznati premještaji iz drugih klijenata prate se i ovdje. Poruke nestale s poslužitelja ostaju u lokalnom Smeću s oznakom, a njihove datoteke se ne brišu.
+
+Duplikati se prepoznaju po Message-ID-ju. Poslane poruke povezuju se s upitima preko zaglavlja odgovora i stvarnih kontakata, čak i kada su uvezene prije primljenih poruka. To omogućuje razlikovanje odgovorenih upita i onih koji trebaju odgovor. Nepotpuna zaglavlja, stare alias adrese i razgovori bez prepoznatog upita mogu zahtijevati ručni pregled. Oznaka „pročitano” ne znači „odgovoreno”. Podsjetnici za uvezene leadove čekaju završetak početnog uvoza. Stara pošta razvrstava se lokalnim pravilima kako masovni uvoz ne bi trošio AI limit; AI razgovor i nacrti dostupni su nakon povezivanja AI-ja.
+
+## Svakodnevni rad s mailom
+
+U **Mailu** klikni **Osvježi mailove** za provjeru novih poruka. Najnovija pošta provjerava se prije uvoza povijesti. Dok aplikacija radi, automatska provjera pokreće se približno svake minute. Ako provjera već traje, vidiš tu obavijest; prikaz se osvježava automatski. Greške se prikazuju uz račun, a nedostajuća Spam mapa ne blokira Inbox.
+
+Prikaz **Sve** uključuje spremljenu primljenu, poslanu i neželjenu poštu te nacrte. Odaberi kategoriju **Hale i nadstrešnice**, **Upiti za kuće**, **Suradnje**, **Promocije**, **Spam** ili **Ostalo**. Razvrstavanje čita sadržaj poruke i odabranu vrstu objekta iz kontakt forme; opći podnožak web stranice i potpis s popisom usluga ne određuju kategoriju upita. Newsletteri i promocijske ponude pripadaju u Promocije, a prepoznatljive prevare i neželjena pošta u Spam. Obične poruke ostaju u Ostalo.
+
+U **Firme** ili **Dobavljače** spremi naziv i stvarni email firme, primjerice VACON ili IMW Montage. Povezane kontakt osobe mogu imati vlastite email adrese. Aplikacija zatim stvara kategoriju naziva te firme i u nju povezuje postojeću i novu korespondenciju. Poslovna domena može povezati i druge adrese iste firme; javne domene kao Gmail ne povezuju sve njihove korisnike u jednu firmu. Promjena naziva firme ažurira naziv kategorije. Odabir kategorije firme prikazuje primljene poruke i poslane odgovore, uz postojeće statuse i podsjetnike.
+
+U izborniku radnji dostupno je **Treba odgovor**, **Odgovoreno**, **Čeka se odgovor** i **Follow-up**. Odabrana firma ostaje uključena i kod tih prikaza. Otvori poruku za cijeli sadržaj, stvarne datume s godinom, privitke i povezane poruke razgovora. Kategoriju i radnju možeš ispraviti ručno, a podsjetnik povezati baš s tim mailom. **Ponovno razvrstaj** provjerava već spremljene poruke bez ponovnog preuzimanja privitaka ili stvaranja duplikata; ne premješta niti briše poruke na mail poslužitelju.
+
+Poruke i privitci uvoze se bez ograničenja od 40/50 MB i bez rezanja izvornog sadržaja. Datoteke se prenose na disk u dijelovima. Stvarna veličina ovisi o slobodnom prostoru i pravilima tvog mail poslužitelja; SMTP poslužitelj može odbiti slanje prevelike poruke. Nakon nadogradnje ponovno se provjerava povijest kako bi se oporavile ranije preskočene velike poruke i privitci; uvezene poruke se ne stvaraju ponovno.
+
+Klikni **Pregledaj** uz privitak: PDF i slike prikazuju se unutar aplikacije, Word/Excel i tekstualne datoteke imaju čitljiv tekstualni pregled. Izvornik možeš zasebno preuzeti. Za nepodržane formate, skenirane PDF-ove i djelomično pročitane dokumente prikazana je napomena. DWG i drugi CAD formati nemaju ugrađen CAD pregled ni OCR.
+
+Za slanje odaberi **Nova poruka**, **Odgovori**, **Odgovori svima** ili **Proslijedi**. Nacrt možeš spremiti, dodati i ukloniti privitke. Izvorni mail ostaje uz tekst odgovora. U **Postavke → Mail računi → Uredi** spremi **Ime pošiljatelja** i **Potpis maila**; potpis se automatski dodaje i tekstualnoj i oblikovanoj verziji poruke.
+
+**AI analiziraj upit i pripremi nacrt** koristi odabrani mail, ranije poruke istog razgovora i čitljiv tekst njegovih privitaka. Prikazuje razumijevanje upita, podatke koji nedostaju i upozorenja prije teksta nacrta. Nepročitani dijelovi jasno su označeni; izvorni dokumenti ostaju cijeli. Bez povezanog AI računa napiši ručni odgovor. Slanje uvijek zahtijeva tvoju zasebnu potvrdu.
+
+## Povezivanje tvog ChatGPT računa
+
+Otvori **Postavke → AI asistent**, odaberi **Moj ChatGPT Plus / Pro račun** i klikni **Poveži ChatGPT račun**. Službena OpenAI prijava otvara se u pregledniku; ondje odaberi **Nastavi s Googleom** i svoj plaćeni ChatGPT račun. Lozinku za Google ne upisuješ u L-Design. Vrati se u aplikaciju i pričekaj oznaku da je račun povezan.
+
+AI zatim radi unutar L-Designa s ograničenim kontekstom mailova, leadova, projekata, ponuda i zadataka. Za povezivanje koristimo službeni OpenAI Codex klijent uključen u paket, s vlastitom privatnom prijavom. Vrijede dostupnost i limiti Codexa u tvojoj ChatGPT pretplati; ovo ne pretvara pretplatu u neograničeni OpenAI API. Ako dosegneš limit, aplikacija prikazuje grešku i možeš pokušati kasnije. Prijavu možeš odspojiti u istim postavkama. Ista glavna prijava služi i za AI editor i izradu slika; nema dodatnih polja za ključeve.
+
+AI analizira, sažima i priprema prijedloge. Slanje maila, konačne cijene i finalizaciju ponude potvrđuješ ti. Bez povezanog AI računa rade jasno označena lokalna pravila i pregled podataka. Stvarnu prijavu u tvoj račun i ograničenja pretplate treba provjeriti na tvom računalu; u razvojnom okruženju ne koristimo tvoj račun.
+
+## Gdje se što nalazi
+
+- Program: `%LOCALAPPDATA%\Programs\L-Design`; novije OTA verzije mogu biti u podmapi `versions\VERZIJA`. Ikona na radnoj površini vodi na aktualnu verziju.
+- Baza: `%LOCALAPPDATA%\L-Design\Desktop\data\postgres`.
+- Dokumenti: `%LOCALAPPDATA%\L-Design\Desktop\data\documents`.
+- Privatni ključ i postavke baze: `%LOCALAPPDATA%\L-Design\Desktop\data\settings.json`.
+- Zapis pokretanja: `%LOCALAPPDATA%\L-Design\Desktop\data\logs`.
+- Privatna ChatGPT prijava: `%LOCALAPPDATA%\L-Design\Desktop\data\ai\home`.
+
+Ne briši i ne dijeli `settings.json`; ključ je potreban za spremljene mail lozinke i AI ključ. Ponovna instalacija čuva podatke. Uklanjanje programa također ih čuva i ne uklanja raniji Docker ili njegovu bazu.
+
+## Sigurnosna kopija
+
+U izborniku **L-Design → Sigurnosna kopija** odaberi mapu, po mogućnosti na drugom disku. Aplikacija na kratko zaustavlja bazu, kopira bazu, dokumente i privatne postavke te se ponovno otvara. Neuspjela kopija označena je kao `.incomplete`; izvornici ostaju na mjestu.
+
+Za vraćanje zatvori L-Design, sačuvaj trenutnu mapu podataka pa u njoj zamijeni `settings.json`, `postgres`, `documents` i, ako postoji, `ai` odgovarajućim stavkama iz potpune kopije. Baza i ključ moraju potjecati iz iste kopije. Kopija može sadržavati ChatGPT prijavu; čuvaj je privatno. Nakon vraćanja prijava može zahtijevati ponovno povezivanje.
+
+## Izmjene i nove verzije
+
+Nakon dovršetka i objave nove verzije aplikacija sama provjerava javni potpisani GitHub izvor približno svakih pet minuta dok radi. Administrator dobiva obavijest gore desno. Klik **Nadogradi aplikaciju** preuzima paket, provjerava potpis i cjelovitost, zatim nudi **Instaliraj i ponovno pokreni**. Preuzimanje ne počinje samo. Za buduće online nadogradnje nije potrebno ručno skidati ZIP. Sam nespremljeni kod u razvojnom okruženju nije objavljena nadogradnja.
+
+Ako imaš verziju stariju od 0.3.23, jednom instaliraj noviji paket ručno da dobiješ javni izvor. Verzije od 0.3.23 nadalje nadograđuju se iz aplikacije. Potpuno zatvori L-Design kroz ikonu uz sat, raspakiraj cijeli ZIP i pokreni **POKRENI-INSTALACIJU.cmd**. Ne uklanjaj stari program: baza, dokumenti, računi i postavke ostaju u `%LOCALAPPDATA%\L-Design\Desktop\data`. Rezervno, administrator može kroz **Postavke → Web i nadogradnje → Odaberi preuzetu nadogradnju** izabrati raspakiranu potpisanu mapu. Neispravan ili stariji paket odbija se. Tvoj hosting u ovoj verziji nije mijenjan; buduća web objava i povezivanje uređaja ostaju zaseban postupak.
+
+Ako si već koristio staru Docker verziju, njezini podaci ostaju u ranijim Docker volumeima. Ova instalacija koristi svoju bazu; postojeće podatke treba zasebno prenijeti prije nastavka rada.
+
+Paket je za Windows 11 x64. Vlastiti EXE nije digitalno potpisan pa Windows može prikazati nepoznatog izdavača. Izgradnja i Linux provjere ne zamjenjuju puni test instalacije na stvarnom Windows računalu.
+
+
+# L-Design 0.3.28
+
+Ova verzija povezuje instaliranu aplikaciju s web aplikacijom na
+https://app.l-design.com.hr. Web i mobitel koriste istu poslužiteljsku bazu;
+računalo zadržava svoju lokalnu bazu i red izmjena za rad bez interneta.
+
+## Povezivanje
+
+1. Na webu se prijavite vlastitim administratorskim računom.
+2. U Postavke → Web i sinkronizacija izradite kod za računalo.
+3. U instaliranoj verziji 0.3.28 otvorite iste postavke i unesite kod.
+   Email administratora mora biti isti. Kod vrijedi deset minuta i prikazuje se
+   jednom; povezivanje traje devedeset dana i može se opozvati na webu.
+4. Prijenos počinje automatski. Izmjene bez interneta ostaju lokalno i prijenos
+   se nastavlja nakon ponovnog povezivanja. Sukobe izmjena pregledajte ovdje.
+
+Prenose se poslovni zapisi, mail sadržaj i privici, dokumenti, ponude,
+konfiguracije, financijski rezultati i završene obrade izvoda te sadržaj Social
+agenta s potvrdama objavljivanja. Datoteke imaju SHA-256 provjeru i prijenos u
+dijelovima s nastavkom. Istodobne izmjene istog zapisa prikazuju se kao sukob;
+brisanjem nadređenog zapisa ne smiju nestati neusklađene izmjene djece.
+
+Lozinke administratora, sesije, ChatGPT/Meta prijave i IMAP/SMTP tajne ne
+prenose se. Na webu ih povežite svojim računima. Novi preneseni mail račun
+ostaje isključen dok na tom uređaju ne unesete njegove pristupne podatke.
+Gost ostaje zaseban javni probni prostor bez pristupa privatnim podacima.
+Nakon povezivanja automatsko objavljivanje Social agenta vodi web poslužitelj,
+a lokalni raspored se ne izvršava paralelno. Sam prijenos ne šalje mailove.
+
+## Nadogradnje
+
+Nova instalacija provjerava potpisanu obavijest o verziji i preuzima pakete s
+vlastite domene. Starije instalacije s GitHub adresom koriste još jednu
+prijelaznu GitHub nadogradnju. Postojeći Ed25519 ključ i provjera veličine i
+SHA-256 ostaju obavezni; adrese preuzimanja su strogo ograničene.
+
+Na webu nadogradnju pokreće administrator. Prije uključivanja nove verzije
+izrađuje se privatna sigurnosna kopija baze. Pohrana i prijave ostaju izvan
+verzioniranih direktorija. Novi proces mora proći provjere servisa, baze i
+HTTP odgovora. U slučaju neuspjeha vraća se prethodna verzija i postavke.
+Privatni zapis aktivacije omogućuje oporavak pri prekidu procesa tijekom
+ponovnog pokretanja; trajni watchdog provjerava ga prije pokretanja servisa.
+Baza se ne vraća automatski iz kopije jer bi time mogle nestati nove izmjene;
+migracije ovog izdanja dodaju tablice i zadržavaju kompatibilnost starog koda.
+
+Povezivanje stvarnog korisnikova računala zahtijeva korisnikov web račun i kod
+iz prethodnih koraka. Cloud testovi koriste odvojene ogledne baze, bez stvarnih
+mailova, objavljivanja i bankovnih transakcija. Instalaciju i ponovno pokretanje
+na stvarnom korisnikovu Windows računalu treba potvrditi nakon nadogradnje.
+
+
+# Facebook i Instagram za Social agent
+
+Galerija, priprema objava, razgovor i raspored rade u L-Designu bez Meta računa. Stvarna objava na Facebooku i Instagramu traži službenu Meta aplikaciju, odobrena dopuštenja i povezivanje računa. Modul ne traži lozinku Facebooka/Instagrama niti AI API ključ.
+
+Od inačice 0.3.22 svakodnevno povezivanje ide preko zasebnih tipki za Facebook i Instagram i otvara službenu Meta prijavu u sistemskom pregledniku. Facebook/Instagram lozinku upisuješ samo na službenoj stranici tih usluga. Napredne tehničke postavke ostaju zatvorene i postavljaju se jednom: javna L-Design adresa, Meta App ID, Meta App Secret, neobavezni Facebook Login Configuration ID i Graph API verzija. Postojeće vrijednosti ostaju sačuvane. App Secret ostaje šifriran u bazi za tvoj L-Design račun i nikad se ne vraća kroz API. Prazno polje zadržava ranije spremljenu tajnu; promijenjena tajna upisuje se samo pri zamjeni. Postavke iz aplikacije imaju prednost pred varijablama okruženja za taj račun. Drugi korisnik ima vlastite Social postavke i povezane račune.
+
+## Što administrator postavlja jednom
+
+1. Objavi isti L-Design poslužitelj na javnoj HTTPS adresi. `SOCIAL_PUBLIC_BASE_URL=https://tvoja-adresa.hr` mora usmjeravati na istu aplikaciju, bazu i privatnu galeriju koju koristi Social agent. HTTPS i dalje mora tražiti prijavu za privatne stranice. Samo potpisana poveznica jedne odabrane fotografije privremeno je javna.
+2. U Meta for Developers napravi ili odaberi aplikaciju za Facebook Login / Instagram API with Facebook Login, namijenjenu stranicama i profesionalnim Instagram računima. Postojeći App ID i App Secret možeš spremiti kroz **Social agent → Povezani računi → Postavke povezivanja**, ili koristiti poslužiteljske `META_APP_ID` i `META_APP_SECRET`. Ne stavljaj tajnu u `NEXT_PUBLIC_*`, chat ili izvorni kod. `APP_ENCRYPTION_KEY` već služi za šifriranje podataka aplikacije; mora biti trajno spremljen i za Meta postavke i tokene.
+3. U Meta postavkama registriraj točan **Valid OAuth Redirect URI**: `https://tvoja-adresa.hr/api/social-agent/meta/callback`. Ne koristi zamjenske domene ili drugi put.
+4. Zatraži dopuštenja `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `instagram_basic` i `instagram_content_publish`. Za **Facebook Login for Business** u Meta nadzornoj ploči napravi konfiguraciju tipa **User access token** s tim dopuštenjima i stranicama te spremi njezin ID u `META_LOGIN_CONFIG_ID`. Modul će poslati `config_id` umjesto popisa `scope` i koristiti authorization code tok. Konfiguracija tipa Business Integration System User u ovoj inačici nije podržana. Razina pristupa, App Review, provjera poslovanja i dostupnost ovise o Meta aplikaciji i tome jesu li računi u ulogama testera/administratora ili stvarni korisnici. Razvojni način sam po sebi ne daje pristup svim računima.
+5. Facebook korisnik mora imati pravo izrade sadržaja na odabranoj **Facebook stranici**. Za Instagram poveži **profesionalni Instagram račun** s tom stranicom. Osobni Instagram profil i osobni Facebook zid nisu ciljevi ovog modula. Ako Meta za stranicu zahtijeva Page Publishing Authorization, dovrši ga u Meti.
+6. Verzija Graph API-ja je promjenjiva `META_GRAPH_VERSION`, početno `v26.0`, provjereno prema službenim uputama 23. listopada 2026. Prije promjene provjeri Meta dnevnik promjena i testiraj dopuštenja.
+
+`SOCIAL_PUBLIC_BASE_URL` se koristi zato što desktop instalacija postavlja vlastiti `APP_URL` na lokalnu adresu s promjenjivim portom. Postavljanje samo javne adrese ne stvara poslužitelj, tunel ni sinkronizaciju dviju različitih baza. Ako desktop radi s odvojenom lokalnom bazom, objavljivanje treba pokrenuti na javnoj instanci koja ima te iste objave i fotografije; ova integracija ne predstavlja zaseban sustav sinkronizacije.
+
+Ako javni i lokalni proces namjerno koriste zajedničku bazu i galeriju, moraju koristiti i isti trajni `APP_ENCRYPTION_KEY`; u suprotnom ne mogu čitati iste šifrirane postavke i tokene ni provjeriti potpise fotografija. U zasebnoj javnoj web instalaciji `APP_URL` treba biti njezina javna HTTPS adresa kako bi redovna prijava i provjera izvora zahtjeva ostale ispravne. Nova jednokratna predaja Meta prijave podržava i javni HTTPS reverse proxy do iste lokalne instance/profila s lokalnim `APP_URL`. Javni povratak mora doći do iste baze i istog korisničkog prostora. Sam obrazac povezivanja ne mijenja poslužiteljski `APP_URL` niti povezuje različite baze.
+
+## Povezivanje u aplikaciji
+
+1. U aplikaciji otvori **Social agent → Povezani računi**. Ako jednokratno postavljanje još nije dovršeno, tehnička polja dostupna su u naprednim postavkama uz poveznice na Meta for Developers i Meta Business Suite.
+2. Kada je integracija postavljena, klikni **Poveži Facebook** ili **Poveži Instagram preko Mete**. Otvara se vanjski sistemski preglednik i službena Facebook/Meta autorizacija. Instagram u ovom modulu koristi Meta prijavu i profesionalni račun povezan s Facebook stranicom.
+3. Prijavi se na Meti i odobri stranice koje želiš vidjeti u aplikaciji. Jednokratna predaja povezuje taj postupak s tvojom aktivnom L-Design prijavom; ne traži zasebnu L-Design prijavu u tom vanjskom pregledniku i ne kopira aplikacijske kolačiće.
+4. Nakon potvrde vrati se u L-Design. Prikaz automatski provjerava rezultat; možeš kliknuti i **Provjeri vezu**. Ako je prozor za prijavu blokiran ili je poveznica istekla, prikazana je konkretna poruka za ponovno pokretanje postupka.
+5. Odaberi **točnu Facebook stranicu** u L-Design popisu i klikni **Koristi odabranu stranicu**. Popis prikazuje povezani profesionalni Instagram za svaku stranicu, naziv i ID, podržava pretragu i naknadno učitavanje prikaza. Jedna prijava može vratiti više stranica; program prati stranice rezultata iz Meta API-ja, ne sprema potajno samo prvih 100. Ne bira automatski stranicu umjesto tebe, čak ni kad Meta vrati jednu.
+
+Ako postavljanje nije dovršeno, tipke za prijavu otvaraju običnu službenu Facebook ili Instagram stranicu. **Ta prijava sama po sebi ne povezuje objavljivanje iz L-Designa.** Status ostaje nepovezan dok se stvarni autorizacijski postupak ne dovrši. Aplikacija ne može zamijeniti obaveznu Meta aplikaciju, dopuštenja i javnu HTTPS povratnu adresu običnom korisničkom lozinkom.
+
+To je odabir jedne stranice za objave, a ne automatsko objavljivanje na sve Facebook stranice odjednom. Ako neka stranica nedostaje, ponovno pokreni Meta prijavu, provjeri koje su stranice odobrene i svoje pravo izrade sadržaja u Meta Business Suiteu. Samo otvaranje Business Suitea ili Facebooka ne povezuje L-Design.
+
+Podaci o prijavi ostaju šifrirani na poslužitelju; sučelje dobiva nazive i identifikatore stranica, bez tokena. Promjena ciljne stranice ili ključnih Meta postavki uklanja potvrde budućih objava; nakon provjere sadržaja ponovno označi raspored. Promjena je blokirana dok traje slanje objave kako odobrena objava ne bi završila na drugoj stranici usred slanja.
+
+Za lokalnu Windows aplikaciju vanjski preglednik dobiva kratkotrajnu jednokratnu poveznicu i zasebnu potvrdu tog preglednika. Povratak provjerava izvornu aktivnu aplikacijsku sesiju, točan profil i Meta konfiguraciju. Odjava, opoziv, istek, pogrešna instanca ili ponovljeno korištenje odbijaju povezivanje. Vanjski preglednik time ne dobiva pristup privatnim L-Design stranicama. Izvorne aplikacijske prijave ostaju u svojem lokalnom korisničkom prostoru.
+
+Početno povezivanje koristi OAuth authorization code tok, standardni dijalog s dopuštenjima ili Facebook Login for Business konfiguraciju tipa User access token ako je upisan `META_LOGIN_CONFIG_ID`. Aplikacija ne tvrdi da je Meta odobrila aplikaciju dok to nije učinjeno u Meti.
+
+## Priprema i objavljivanje
+
+Svaka objava treba tekst, fotografije, platforme i vrijeme. Kvačica **Uključi u raspored** odobrava upravo tu verziju teksta, fotografija, platformi i vremena. Naknadne izmjene uklanjaju odobrenje. AI priprema i mijenja nacrte, ali ne odobrava raspored. Pauza objavljivanja ima prednost nad odobrenim rasporedom.
+
+Radnik mora biti pokrenut i računalo/poslužitelj povezano s internetom kad raspored dospije. Program u zatvorenom stanju ne može lokalno objavljivati. Objave mogu imati od 1 do 10 fotografija u ovoj inačici. Ulazne fotografije iz galerije pretvaraju se u obični JPEG i uklanjaju se metapodaci. Instagram u modulu traži fotografije do 8 MB i konzervativan omjer od 4:5 do 1.91:1 te opis do 2200 znakova. Fotografije se ne izrezuju bez korisnikove odluke.
+
+Facebook fotografije šalju se kroz Pages API; za više fotografija prvo se pripreme neobjavljene fotografije, a zatim jedna zajednička objava. Instagram prvo priprema spremnike fotografija, provjerava njihov status i tek zatim objavljuje spremnik. Identifikatori spremnika i rezultat platforme spremaju se trajno. Aplikacija bira do 10 fotografija radi konzistentnog pregleda i kompatibilnosti iako trenutačna Meta dokumentacija za Instagram navodi do 20 stavki karusela.
+
+Meta dohvaća odabranu fotografiju s vremenski ograničene poveznice. Poveznica je potpisana za točnog vlasnika i fotografiju, traje 20 minuta i ne otvara ostatak galerije. Privatni pregled i dalje zahtijeva prijavu. Ne spremaj potpise poveznica u javne zapisnike ili analitiku.
+
+## Neuspjeli i nepotvrđeni pokušaji
+
+Izričito odbijanje dopuštenja ili formata prikazuje se kao neuspjelo. Ako se veza prekine tijekom pisanja prema Meti, ishod ostaje **nepotvrđen**. Automatsko ponavljanje istog ključa tada je blokirano kako se objava ne bi udvostručila. Prije nove odobrene verzije provjeri Facebook/Instagram. Zapis o dostavi ne briše se odspajanjem Meta računa.
+
+Ograničenja i isteci prijava ostaju pod kontrolom Mete. Ponovno poveži račun kad istekne pristup ili Meta povuče dopuštenja. Ovaj modul ne uključuje plaćene promocije, potrošnju budžeta, WhatsApp, objavljivanje videa, Reels ni Stories; PDF vodič je poslužio za dogovor tijeka pripreme i odobrenja, a nije API za pristup tuđoj usluzi.
+
+## Provjereni službeni izvori
+
+- [Instagram Content Publishing](https://developers.facebook.com/documentation/instagram-platform/content-publishing) — javni mediji, JPEG, spremnici, provjera statusa i objavljivanje.
+- [Facebook Pages Posts](https://developers.facebook.com/documentation/pages-api/posts) — dopuštenja, objave i fotografije na stranici.
+- [Facebook Login: Manual Flow](https://developers.facebook.com/documentation/facebook-login/guides/advanced/manual-flow) — autorizacijski dijalog, `state`, točan redirect URI i razmjena koda na poslužitelju.
+- [Facebook Login for Business](https://developers.facebook.com/documentation/facebook-login/facebook-login-for-business/) — konfiguracija tipa User access token, `config_id` i odabir authorization code toka.
+- [Graph API v26.0 changelog](https://developers.facebook.com/docs/graph-api/changelog/version26.0/) — verzioniranje i promjene API-ja; trenutačni primjeri vodiča navode `v26.0`.
+
+Izvori su javno dohvaćeni 23. listopada 2026. Automatizirane provjere modula koriste simulirane Meta odgovore; stvarna OAuth prijava i objava mogu se provjeriti tek s postavljenom Meta aplikacijom i korisnikovim odobrenim računima. Testovi nisu slali stvarne objave.
+
+
+# Social agent: dva AI načina
+
+Kartica Social agent ima spremljeni prekidač **AI u aplikaciji / ChatGPT**. Galerija i pripremljene objave ostaju u L-Designu. Nijedan AI alat nema pravo uključiti kvačicu rasporeda ili objaviti objavu.
+
+## AI u aplikaciji
+
+Koristi glavni račun povezan u Postavkama → AI asistent, bez novog AI API ključa. Kontekst čine poslovni opis, spremljene upute, odabrane stvarne fotografije i dorade objava. To je uređiva memorija aplikacije, a ne treniranje modela. Za pripremu budućih termina odabrati **AI u aplikaciji** i zasebni način **Automatski**, dodati termine u plan te fotografije u galeriju. Agent unaprijed priprema sadržaj za spremljene buduće datume dok je aplikacija/poslužitelj pokrenut i glavni račun dostupan. Dnevni prijedlog uključuje se zasebnom dnevnom opcijom. Sve pripreme ostaju neodobreni nacrti.
+
+Prijava u Codex s ChatGPT pretplatom ne otvara povijest razgovora, projekte i memoriju ChatGPT weba. Postojeća web prijava ne prenosi se u API niti se kopiraju kolačići računa.
+
+## Izvorni ChatGPT
+
+Instalirana aplikacija prikazuje postojeći ChatGPT web prikaz s njegovom spremljenom prijavom. Tu ostaju razgovori, projekti i memorija koju sam ChatGPT smije koristiti za taj razgovor. L-Design ne obećava potpuno čitanje svih ranijih razgovora: dostupnost ovisi o ChatGPT postavkama, projektu, planu i pravilima računa.
+
+Za izravnu pripremu/doradu nacrta u aplikaciji ChatGPT dobiva strogo ograničene **MCP alate** Social agenta. Oni ne vide poštu, ponude, lozinke, tokene ni ostale module. Za pregled fotografije postoji zaseban alat. Alati daju paginirani i pretraživ kontekst te navode obuhvat, kako se stari zapisi ne bi prešutno tretirali kao pregledani.
+
+### Povezivanje nakon postavljanja javne adrese
+
+1. L-Design mora biti dostupan na javnoj HTTPS adresi. Na javnoj web instalaciji postaviti **APP_URL=https://tvoja-adresa.hr** i **SOCIAL_PUBLIC_BASE_URL** na istu adresu. Sama varijabla SOCIAL_PUBLIC_BASE_URL uz lokalni APP_URL ne omogućuje javnu prijavu: zaštita prijave i kolačići i dalje prate APP_URL. Adresa mora voditi na istu instalaciju i bazu koju želiš uređivati. Lokalni `localhost` bez javnog HTTPS pristupa nije dostupan ChatGPT poslužiteljima.
+2. U javnom pregledniku prijaviti se u svoj postojeći L-Design administratorski račun. Prijava iz lokalne aplikacije ne vrijedi automatski za drugi hostname.
+3. U ChatGPT-u otvoriti **Plugins → + → Add custom MCP server**, naziv **L-Design Social agent**, URL iz kartice Povezivanja, npr. `https://tvoja-adresa.hr/api/social-agent/mcp`.
+4. Odabrati **OAuth**, bez zasebnog AI API ključa. Server podržava dinamičku registraciju javnog klijenta. ChatGPT otvara L-Design stranicu sa stvarnim opsegom pristupa. Izričito dopustiti povezivanje.
+5. Instalirati dobiveni dodatak. U željenom razgovoru/projektu odabrati ga kroz **@L-Design Social agent** i npr. zatražiti: „Pročitaj moje Social upute i fotografije. Koristi znanje dostupno ovom razgovoru i pripremi nacrt objave za halu. Nemoj ništa objaviti.”
+6. Pregledati vraćeni nacrt u Social agentu, provjeriti datum i mreže te tek zatim označiti **Uključi u raspored**.
+7. Nakon nadogradnje već povezanog dodatka osvježiti njegove alate u ChatGPT postavkama kako bi se pojavili `social_read_plan` i `social_fill_plan_slot`.
+
+Dostupnost dodavanja vlastitog MCP poslužitelja ovisi o stvarnim opcijama ChatGPT računa/radnog prostora. Ako ta opcija nije dostupna, radi i postupak **kopiraj opis / uvezi ChatGPT prijedlog** u Social agentu. Nema skrivene automatizacije web preglednika ni čitanja nedokumentiranih ChatGPT API-ja.
+
+### Priprema spremljenih termina iz ChatGPT-a
+
+U **Social agent → Plan pripreme objava → Dodaj termine** prvo spremiti buduće datume, željene mreže i, po želji, temu. Samo spremanje termina ne dopušta objavljivanje. U ChatGPT-u zatim odabrati povezani L-Design dodatak i zatražiti, primjerice:
+
+> Pročitaj moj spremljeni plan i poslovne upute. Pregledaj stvarne fotografije iz galerije i pripremi različite nacrte za termine koji još čekaju pripremu. Koristi znanje dostupno ovom razgovoru. Sačuvaj zadane datume i mreže. Ništa nemoj odobriti ni objaviti.
+
+Alat `social_read_plan` vraća vlasnikove termine, teme, mreže, statuse i aktualne verzije. Rezultat je paginiran i pretraživ; budući termini prikazuju se prema zadanim postavkama, a starije ili propuštene termine moguće je zasebno zatražiti. ChatGPT treba pregledati odabrane fotografije prije opisivanja njihova sadržaja.
+
+Alat `social_fill_plan_slot` prima samo identifikator termina, aktualnu verziju, naslov, tekst i identifikatore fotografija. Poslužitelj uzima datum i mreže iz spremljenog termina, stvara neodobren nacrt i povezuje ga s terminom. Tu nema polja za odobravanje, objavljivanje ni uključivanje automatskog načina. Tuđi, otkazani, prošli ili promijenjeni termini odbijaju se. Već pripremljen termin ne može se ponovno popuniti tim alatom i tako prebrisati korisnikove dorade; postojeći nacrt uređuje se zasebnim alatom uz provjeru njegove verzije.
+
+**ChatGPT web radi na tvoj zahtjev u razgovoru.** Prijava i odabir ChatGPT načina ne pokreću samostalnu pripremu u pozadini, čak ni ako je spremljeni prekidač pripreme na Automatski. Za pozadinsku pripremu plana odabrati **AI u aplikaciji + Automatski**. Već odobrene objave može poslati zaseban raspored, ako su Meta računi povezani i objavljivanje nije pauzirano.
+
+### Opoziv
+
+U **Social agent → Povezivanja → ChatGPT → Opozovi** ukida se odgovarajuća veza. Odmah prestaju vrijediti svi pristupni i osvježavajući tokeni tog dopuštenja. OAuth tokeni su nečitljivi iz sučelja i spremljeni samo kao hashovi; kratkotrajni kodovi su jednokratni, PKCE zahtijeva S256, a tokeni su vezani uz vlasnika i točan MCP resurs.
+
+## Tehničke adrese
+
+- MCP Streamable HTTP: `/api/social-agent/mcp` (POST JSON-RPC; stateless, JSON odgovori; GET SSE namjerno 405).
+- Zaštita resursa: `/.well-known/oauth-protected-resource/api/social-agent/mcp`.
+- OAuth metapodaci: `/.well-known/oauth-authorization-server`.
+- DCR: `/api/social-agent/mcp/oauth/register`.
+- Autorizacija / token: `/api/social-agent/mcp/oauth/authorize`, `/api/social-agent/mcp/oauth/token`.
+- Pristanak: `/social-agent/connect` (izričita prijava i potvrda, zaštita istog preglednika i Origin zaglavlja).
+- Alati: `social_read_context`, `social_read_plan`, `social_read_post`, `social_read_knowledge`, `social_read_image`, `social_create_draft`, `social_update_draft`, `social_fill_plan_slot`, `social_remember_instruction`.
+
+Povratne OAuth adrese dopuštene su samo za `https://chatgpt.com` / `https://chat.openai.com` i moraju se točno poklapati s registracijom. Za zaseban MCP Inspector može se postaviti **LDESIGN_SOCIAL_MCP_REDIRECT_URIS** s popisom točnih adresa odvojenih zarezom (HTTPS ili izričito lokalni HTTP). Server nikad ne dohvaća te adrese.
+
+## Provjera i granice
+
+Automatizirane provjere u zasebnoj bazi pokrivaju PKCE, pogrešne callback adrese, jednokratne kodove, odbijanje pristanka, rotaciju refresh tokena, opoziv, vlasništvo, read-only opseg, uklanjanje odobrenja nakon promjene i zabranu alata za slanje. Provjere plana dodatno pokrivaju paginaciju, read-only pristup, vlasništvo i verzije termina, čuvanje zadanog datuma i mreža te zaštitu već pripremljenog nacrta. Živa instalacija na korisnički ChatGPT račun nije izvedena u cloud okruženju; potrebni su javna adresa i korisnikov stvarni pristanak.
+
+Službene reference, provjereno 23. 10. 2026.:
+
+- [ChatGPT custom MCP server](https://developers.openai.com/api/docs/guides/custom-mcp-server)
+- [Connect and test a plugin](https://developers.openai.com/apps-sdk/deploy/connect-chatgpt)
+- [ChatGPT Memory FAQ](https://help.openai.com/en/articles/8590148-memory-faq)
+- [Razlika ChatGPT i Codex memorije](https://learn.chatgpt.com/docs/customization/memories)
+
+
+# Financije — automatski bankovni pregled
+
+Nakon nadogradnje nije potrebno uključivati uvoz, označavati stare mailove kao nove niti ručno potvrđivati ispravne izvode. Dok aplikacija i pozadinski proces rade, Financije automatski pregledavaju cijelu dostupnu povijest **poruka Erste banke** i njihovih priloga te nastavljaju s budućim porukama te banke. Pošiljatelj mora biti s podržane službene Erste domene; ime pošiljatelja, tekst poruke ili proslijeđeni sadržaj nisu dovoljni. Financije ne čitaju sadržaj i priloge drugih pošiljatelja radi traženja izvoda. Pretraga pamti položaj zasebno za mailove i priloge, pa pronalazi i prilog koji IMAP naknadno preuzme uz već obrađen stari Erste mail. Nema ograničenja na zadnjih pet godina ni na prvih tisuću izvoda.
+
+Erste poruka može biti u arhivi ili prilagođenoj mapi i već pročitana. Nakon provjere pošiljatelja provjerava se sadržaj samog dokumenta. Proslijeđeni mail knjigovođe ili druge tvrtke ne uključuje se automatski. Potvrde plaćanja, pojedinačni nalozi, računi dobavljača, promidžbene poruke i obične bankovne obavijesti ne ulaze u financijske zbrojeve, čak ni kad ih šalje Erste.
+
+IMAP istodobno nastavlja preuzimati povijest poslužitelja. Ako stariji mail još nije stigao u lokalnu aplikaciju, to je naznačeno u Financijama; pregled se dopunjuje nakon njegova preuzimanja. Financije ne pristupaju internetskom bankarstvu niti preuzimaju dokumente koji nisu dostupni u povezanoj pošti ili privatnoj pohrani aplikacije.
+
+## Lokalno spremljen napredak
+
+Položaj pretrage, dovršeni zadaci, provjereni izvodi i transakcije trajno su spremljeni u lokalnoj bazi pripadajućeg korisnika. Obično pokretanje aplikacije ne vraća pretragu na početak i ne pokreće ponovno AI čitanje dovršenih izvoda. Odmah se može prikazati spremljeni pregled, a pozadinska obrada nastavlja samo nove ili stvarno nedovršene izvore. Nova inačica aplikacije sama po sebi nije razlog za ponovno čitanje povijesti.
+
+Naknadno preuzet prilog uz staru Erste poruku i dalje se pronalazi zasebnim položajem pretrage priloga. Kad novi prilog sadrži potpuno iste datoteke kao već provjeren izvor, potpuni provjeren rezultat može se ponovno koristiti nakon provjere sadržajnog otiska i svih pripadajućih izvoda. To ne udvostručuje stavke i ne preskače neusklađene ili djelomične dokumente. Promijenjena datoteka obrađuje se kao novi sadržaj. Ručno **Ponovno očitaj izvor** izričito traži novo čitanje i zaobilazi predmemoriju.
+
+## Poslovni IBAN i provjera
+
+Od 0.3.22 zaseban postupak oporavlja prihvatljive stare AI obrade koje su završile, a izvodi ostali na provjeri. Taj postupak ima vlastiti spremljeni položaj i oznaku inačice čitača; ne vraća pretragu mailova na početak. Kad AI nije povezan ili je privremeno nedostupan, izvor čeka uz odmak ponovnog pokušaja. Ponovno povezivanje omogućuje nastavak. Ručna isključenja i već provjerene stavke ostaju zaštićeni. Novo čitanje mora ponovno proći provjeru računa, stavki, salda, duplikata i preklapanja prije uključivanja u brojke.
+
+Koristi se postojeći poslovni IBAN iz postavki ovog radnog prostora ili jednoznačan račun već potvrđenih bankovnih izvoda. IBAN se provjerava po obliku, duljini i kontrolnom zbroju. Podaci računa nisu ugrađeni u instalaciju. Ako nije moguće nedvojbeno utvrditi jedan poslovni račun, dokumenti ostaju izdvojeni uz vidljivo upozorenje; aplikacija ne odabire prvi pronađeni IBAN. Za prvi zaključak iz novih dokumenata mora završiti dostupna IMAP povijest, kako dio preuzetih mailova ne bi postao pogrešna pretpostavka o cijelom poslovanju.
+
+Prije uključivanja svakog izvoda provjeravaju se:
+
+- Je li dokument stvarni bankovni izvod za poslovni IBAN i navedenu valutu.
+- Stvarni datumi razdoblja i knjiženja, uključujući godinu.
+- Početno i završno stanje, zbroj priljeva i odljeva te usklađenost prometa sa stanjima.
+- Duplikati istog sadržaja, čak i pod različitim nazivima ili u više mailova.
+- Preklapanje mjesečnih, dnevnih i godišnjih izvoda, bankovni identifikatori i kontinuitet stanja.
+
+Usklađeni strukturirani izvodi i potpuno provjereni AI očitani izvodi uključuju se **automatski**. AI mora potkrijepiti račun, razdoblje, stanja i svaku stavku izvornim tekstom. Nepotpuni, nečitljivi, proturječni ili nepotkrijepljeni podaci ostaju izvan brojki uz razlog za provjeru. Potvrda plaćanja ne može zamijeniti bankovni izvod. Dvije stvarne uplate istog dana i istog iznosa zadržavaju se kao dvije stavke kad ih razlikuju bankovni identifikatori ili ponavljanja unutar izvornika.
+
+## Pregledi
+
+**Pregled** prvo prikazuje sažetak: sve dostupne godine, priljeve, odljeve, neto novčani tok, broj stavki i izvoda, mjesečne grafove, kategorije i pokrivenost razdoblja. Početno stanje i posljednje dostupno završno stanje imaju datume izvoda. Godišnji promet zbroj je svih provjerenih jedinstvenih transakcija te godine; završna stanja ponovljenih ili uzastopnih izvoda ne zbrajaju se međusobno. Klik na godinu ili mjesec otvara pripadajući pregled. Starije HRK godine i novije EUR godine ostaju dostupne, uz vlastitu valutu; nove godine pojavljuju se kada stignu pripadajući izvodi. Valute se ne zbrajaju niti preračunavaju pretpostavljenim tečajem.
+
+U izvornom vlasničkom L-Design prostoru **2025.** dostupna je kao početna poslovna godina i dok se stari izvodi još pronalaze. To ne stvara izmišljene izvode ili godišnje iznose: prazno razdoblje ima objašnjenje i oznaku nedostajućih podataka. Stvarni izvodi raspoređuju se po godini na dokumentu; izvod za 2025. primljen mailom 2026. ostaje u 2025. Drugi korisnički prostori ne preuzimaju L-Designovu početnu godinu ni poslovne podatke.
+
+To je pregled stvarnog bankovnog prometa po uzoru na poslovne godišnje preglede. Priljevi nisu automatski računovodstveni prihodi, odljevi nisu automatski rashodi, a neto novčani tok nije dobit. Prazno ili djelomično pokriveno razdoblje nije dokaz da nije bilo poslovanja. Stanje je stanje na datum zadnjeg izvoda, a ne trenutačni podatak banke.
+
+**Sve transakcije** otvara objedinjene pojedinačne transakcije svih uključenih izvoda. Ista stavka prikazuje se jednom i kad postoji u mjesečnom i godišnjem dokumentu. Možeš pregledati svu dostupnu povijest ili odabranu godinu/mjesec, promijeniti okvirnu kategoriju, izostaviti vlastite prijenose i otvoriti točan izvod transakcije. Popis je podijeljen na stranice bez odbacivanja starijih stavki. Pojedinačni opisi nisu učitani na početnom sažetku prije otvaranja detalja.
+
+**Svi izvodi** prikazuje pojedinačne izvode kroz cijelu dostupnu povijest, datume, račun, valutu, stanja, izvorni dokument/mail i upozorenja. Dostupni su filtri razdoblja i stranice za sve zapise. Ispravni izvodi ne traže gumb za potvrdu. Ako zatražiš ponovno očitavanje izvora, njegov doprinos privremeno se izdvaja; nakon uspješne provjere ponovno se uključuje automatski. Ručno isključen izvod ostaje isključen. Izvorni dokument ostaje sačuvan. Neusklađen ili pogrešan izvor ostaje za provjeru umjesto da pokvari grafove.
+
+**Osvježi** provjerava nove poruke povezanih uključenih mail računa, zatim ponovno traži i obrađuje prihvatljive Erste izvode te osvježava pregled. Sinkronizacija same pošte ostaje potpuna kako Mail normalno radi; financijska obrada iz nje uzima samo Erste izvore. Ako pošta ili obrada već radi, napredak i eventualne greške ostaju vidljivi. Gumb ne briše postojeće izvode niti stvara nove kopije već poznatih transakcija.
+
+## Formati, AI i privatnost
+
+Podržani su čitljiv PDF, bankovni CSV s potpunim podacima, CAMT.053 XML, MT940/STA, tekst i Excel XLSX. Naziv datoteke nije obvezan pokazatelj vrste ako je dostupna ispravna vrsta sadržaja. Dodatna opcija učitavanja izvoda s računala ostaje dostupna; nije potrebna za automatsku obradu pošte.
+
+Za čitanje PDF-a/teksta/Excela i razgovor koristi se postojeća glavna AI prijava aplikacije, bez novog polja za API ključ. Novi automatski obrađeni strukturirani izvodi također prolaze AI provjeru. Već provjereni spremljeni pregledi rade lokalno, a ručno čitanje strukturiranog bankovnog formata može ostati lokalno. Za podržane čitljive tablice lokalno se izdvoje svi retci i provjere zbrojevi, a AI provjerava izvor i izdvojene podatke sažetim odgovorom. Nepodudarna provjera vraća se na puno AI čitanje. Nedostupnost AI-ja ne pretvara se u potvrđene financijske brojke. Nečitljiv ili nepotpuno pročitan izvod ostaje izvan zbrojeva. Pojedinačna obrada ima granice od 64 MB, 1000 PDF stranica i dva milijuna znakova teksta; to ne ograničava primitak ni pohranu maila. Veći izvor može se podijeliti ili zamijeniti čitljivim bankovnim izvozom.
+
+AI financijski pomoćnik dobiva provjereni agregirani pregled odabranog razdoblja, valute i izvora, a ne pojedinačne opise transakcija. Ne izvršava plaćanja. Financijski zapisi i razgovor pripadaju prijavljenom korisniku. Korisnički radni prostor ima vlastitu poštu, postavke računa i podatke; ne preuzima poslovni IBAN ni izvode vlasnika aplikacije. Gost nema pristup Financijama.
+
+Nadogradnja automatski primjenjuje uži izbor Erste pošiljatelja i ponovno provjerava odgovarajuću povijest. Ranije automatski pronađeni izvori drugih pošiljatelja više ne ulaze u ovaj bankovni pregled. Ručno učitani vlastiti izvodi ostaju zasebna izričita mogućnost. Stari neprovjereni zapisi privremeno ostaju izdvojeni dok se ne usporede s izvornicima. Mailovi, dokumenti i projekti ostaju sačuvani.
+
+## Lokalni TXT zapis zastoja
+
+Instalirana aplikacija zapisuje tehničko stanje Financija u postojeći **L-Design-dijagnostika.txt** na radnoj površini. Provjera se pokreće nakon prijave/navigacije i periodično dok program radi. Bilježe se konačni kodovi razloga, broj obrade koja čeka/provjeru/pogreške te dostupno trajanje čitanja i AI poziva. Primjeri su `FINANCE_WAITING_AI`, `FINANCE_TARGET_UNKNOWN`, `FINANCE_BALANCE_MISMATCH`, `FINANCE_INCOMPLETE_SOURCE` i `FINANCE_OVERLAP_CONFLICT`. Zapis razlikuje rad koji je još u tijeku od pogreške.
+
+U TXT ne ulaze iznosi, IBAN, nazivi dokumenata, opisi transakcija, sadržaj mailova, lozinke ni tokeni. Zapis se ne šalje sam. Ako obrada ostane zaustavljena, pošalji aktualni TXT kako bi se mogao utvrditi stvarni razlog na tvojem računalu.
