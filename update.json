@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "payload": {
+    "version": "0.3.25",
+    "releasedAt": "2026-10-24T10:15:13.988Z",
+    "windows": {
+      "arch": "x64",
+      "parts": [
+        {
+          "url": "https://raw.githubusercontent.com/leo25matko-boop/termo/03e793c460afdbd68403a8a76e4aecea4eae269c/paket/dio-001.bin",
+          "size": 50331648,
+          "sha256": "4c4d04ac51fe22c2baba1d714a0bcd7383225f7f4530d4ea226892f7227d9ce4"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/leo25matko-boop/termo/03e793c460afdbd68403a8a76e4aecea4eae269c/paket/dio-002.bin",
+          "size": 50331648,
+          "sha256": "de579d80bda008a1841072ba8d2f002c88a30419f87af661dab3d2e0a389d416"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/leo25matko-boop/termo/03e793c460afdbd68403a8a76e4aecea4eae269c/paket/dio-003.bin",
+          "size": 50331648,
+          "sha256": "b575a5a5efa188f7d885d824913439e92e6767569f4e73f9be261ee86472d84a"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/leo25matko-boop/termo/03e793c460afdbd68403a8a76e4aecea4eae269c/paket/dio-004.bin",
+          "size": 50331648,
+          "sha256": "ca254ac0043957bf63477c151d2bdf7c80745b8ccc6343d05c6ac767719461af"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/leo25matko-boop/termo/03e793c460afdbd68403a8a76e4aecea4eae269c/paket/dio-005.bin",
+          "size": 50331648,
+          "sha256": "db135f9972373062f3cf4d56f3dc6aa2fb37c59c0c146238b66ee75230358b56"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/leo25matko-boop/termo/03e793c460afdbd68403a8a76e4aecea4eae269c/paket/dio-006.bin",
+          "size": 50331648,
+          "sha256": "b5bf66438143bfae0a52149cb259cbdfd46c3f87920bce9656fef8016df9edf0"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/leo25matko-boop/termo/03e793c460afdbd68403a8a76e4aecea4eae269c/paket/dio-007.bin",
+          "size": 50331648,
+          "sha256": "973c935b812971f40c628671956e4b85d06cff301c10ed8c33a47f2c8e116c76"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/leo25matko-boop/termo/03e793c460afdbd68403a8a76e4aecea4eae269c/paket/dio-008.bin",
+          "size": 50331648,
+          "sha256": "5f9895943abe9609b248fb3941e17f9a5e0ed4a4bb616d403a36dd4936338c2b"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/leo25matko-boop/termo/03e793c460afdbd68403a8a76e4aecea4eae269c/paket/dio-009.bin",
+          "size": 50331648,
+          "sha256": "6f6c12b7d694c4ec81e7137aa1324fe4dc12f3611d063899143c2c4b858bcdc8"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/leo25matko-boop/termo/03e793c460afdbd68403a8a76e4aecea4eae269c/paket/dio-010.bin",
+          "size": 50331648,
+          "sha256": "3a2eb3e6010076625bf53e3c55dbcaa2e9a553ed182eef72430a1d034aa4e717"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/leo25matko-boop/termo/03e793c460afdbd68403a8a76e4aecea4eae269c/paket/dio-011.bin",
+          "size": 50331648,
+          "sha256": "4f99045f1afe0c89081d002218d22c4696ca5e6a9ecabe7bad33eb28848bb1c5"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/leo25matko-boop/termo/03e793c460afdbd68403a8a76e4aecea4eae269c/paket/dio-012.bin",
+          "size": 7576602,
+          "sha256": "e88058c36d315bc9700dbc4bfcc8dbfbc64b8fbcc03bf48f06b9005e7244a8ed"
+        }
+      ],
+      "size": 561224730,
+      "sha256": "f58936d9230a65a79def24bf04ecb8977732a92eb21b8f7754aae9165100a516"
+    },
+    "web": {
+      "version": "0.3.25"
+    }
+  },
+  "signature": "2EE9T8DqxejjPUprH3fiZwzXVR590niEmnW4/CGWC91qs9qUp7UrKmPLZVkzflGQzanTNrliO2jt2Row2G/vBw=="
+}
