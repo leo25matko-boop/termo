@@ -1,0 +1,89 @@
+TermoDom — Windows desktop aplikacija za sustav grijanja
+Verzija 1.0.0 · Windows 10 i 11, x64
+
+INSTALACIJA I POKRETANJE
+1. Preuzmite TermoDom-Setup-1.0.0-x64.exe:
+   https://github.com/leo25matko-boop/termo/releases/latest/download/TermoDom-Setup-1.0.0-x64.exe
+2. Pokrenite instalater i slijedite korake instalacije.
+3. Otvorite TermoDom preko prečaca na radnoj površini ili izbornika Start.
+
+Instalater sadrži sve potrebne komponente. Aplikacija se otvara u vlastitom
+prozoru. Instalira se za trenutačnog korisnika; zadana mapa nalazi se unutar
+%LOCALAPPDATA%. Tijekom instalacije možete odabrati drugu mapu.
+
+Za nova očitanja i slanje promjena potrebna je internetska veza s izvornikom:
+https://automatiziraj.se/centralno/php/novo.php
+
+PRENOSIVA APLIKACIJA IZ ZIP-A
+Gotovi paket dostupan je na adresi:
+https://github.com/leo25matko-boop/termo/releases/latest/download/TermoDom-Windows.zip
+Raspakirajte cijeli ZIP u zasebnu mapu i pokrenite TermoDom.exe.
+Sve datoteke i podmape, uključujući resources, zadržite zajedno.
+GitHubov Source code (zip) sadrži izvorni kod za razvoj. Za korištenje
+odaberite EXE instalater ili gotovi TermoDom-Windows.zip.
+
+KORIŠTENJE
+- Pregled prikazuje temperature i stanja koja vraća izvorni sustav: Kat,
+  Prizemlje, vanjsku temperaturu, pufer, sanitarnu vodu, peć, pumpe i ventilator.
+- Kartica Rasporedi sadrži odvojene programe za Kat i Prizemlje, po 24 klizača
+  za sate 0–23. Trenutačne granice izvornika: Kat 18–33 °C, Prizemlje 18–25 °C,
+  uz korak od 0,1 °C. Sučelje preuzima granice iz izvornog obrasca.
+- Za istu temperaturu u više sati odaberite početni i završni sat, pomaknite
+  zajednički klizač i odaberite Primijeni na sate.
+- Nakon uređivanja odaberite Spremi raspored i potvrdite slanje. Tek tada
+  izmjene odlaze u stvarni sustav. Poništi vraća učitane vrijednosti.
+- Postavke sadrže svih šest izvornih polja: sanitarnu vodu, vodu za grijanje,
+  tri temperature klimatizacije te uključeno/isključeno stanje klimatizacije.
+  Provjerite izmjene i potvrdite prijenos u sustav.
+- Grafovi prikazuju dostupnu povijest. Odaberite razdoblje, kliknite legendu
+  za prikaz ili skrivanje serije i koristite gumb za izvoz podataka u CSV.
+- Očitanja se automatski osvježavaju svakih 90 sekundi. Možete ih osvježiti
+  i ručno gumbom u aplikaciji.
+
+PODACI I PRISTUP IZVORNIKU
+Vrijeme očitanja i vrijeme sustava dolaze iz izvornika. Prikaz SYNC prenosi
+tekst iz izvornog sustava. Potvrda spremljenog zapisa u web-sučelju sama
+po sebi ne potvrđuje zasebno stanje sinkronizacije uređaja.
+Prazan graf znači da izvor nema dostupne podatke. Izvorne dodatne Tuya
+poveznice za 1 h i 6 h pri izradi su vraćale HTTP 404.
+
+Pri izradi su očitanja i obrasci bili dostupni bez prijave. Aplikacija ima
+vlastitu sesiju u memoriji. Ako izvor naknadno uvede prijavu, za nastavak
+će trebati dodati podršku za tu prijavu u aplikaciju.
+
+AUTOMATSKO PREUZIMANJE S GITHUBA
+Pri pokretanju aplikacija u pozadini provjeri najnovije stabilno izdanje.
+Novi ZIP sprema u korisničku mapu:
+%APPDATA%\TermoDom\downloads\TermoDom-Windows.zip
+
+Ako je isti paket već preuzet i kontrolna suma odgovara, preskače se ponovno
+preuzimanje. Rezultat provjere nalazi se u:
+%APPDATA%\TermoDom\downloads\status.txt
+
+Mapu otvorite unosom %APPDATA%\TermoDom\downloads u adresnu traku Windows
+Explorera. Preuzeti ZIP raspakirajte ručno u novu mapu nakon zatvaranja
+aplikacije. Preuzimanje čuva postojeću instalaciju i postavke grijanja.
+Za novu instaliranu verziju preuzmite aktualni EXE instalater s GitHuba:
+https://github.com/leo25matko-boop/termo/releases/latest
+Javni repozitorij dostupan je bez prijave. Nedostupan GitHub ne sprječava
+rad aplikacije za grijanje.
+
+ZATVARANJE
+Zatvorite prozor aplikacije ili odaberite Zatvori aplikaciju.
+Ako postoje nespremljene izmjene, prije izlaska provjerite želite li ih
+spremiti. Zatvaranje TermoDoma završava aplikaciju na računalu; sustav
+grijanja nastavlja raditi prema svojim spremljenim postavkama.
+
+KORISNIČKI PODACI I DEINSTALACIJA
+Korisnički podaci i preuzeti paketi nalaze se u %APPDATA%\TermoDom.
+Za deinstalaciju otvorite Windows Postavke → Aplikacije → TermoDom.
+Korisnička mapa zadržava se nakon deinstalacije.
+
+AKO PODACI NISU DOSTUPNI
+- Provjerite internetsku vezu i dostupnost izvornog sustava.
+- Ponovite osvježavanje u aplikaciji nakon povratka veze.
+- Ako se prenosiva aplikacija ne pokreće, ponovno raspakirajte cijeli ZIP
+  i provjerite jesu li TermoDom.exe i sve podmape ostali zajedno.
+- Za pojedinosti o automatskom preuzimanju pogledajte navedeni status.txt.
+
+Popis izvornih funkcija nalazi se u FUNKCIJE.txt.

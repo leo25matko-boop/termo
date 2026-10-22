@@ -1,4 +1,6 @@
 runtime/
+node_modules/
+release/
 downloads/
 *.zip
 *.part

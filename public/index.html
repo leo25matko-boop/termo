@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="hr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#153d35">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>TermoDom · Upravljanje grijanjem</title>
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#overview" aria-label="TermoDom početna"><span class="brand-mark" data-icon="heat"></span><span>termo<span class="brand-light">dom</span><small>UDOBNOST POD KONTROLOM</small></span></a>
+    <div class="home-label"><span data-icon="home"></span><div>Moj dom<small>Centralni sustav grijanja</small></div><span class="tiny-dot"></span></div>
+    <div class="nav-label">UPRAVLJANJE</div>
+    <nav aria-label="Glavni izbornik">
+      <a href="#overview" data-page="overview"><span data-icon="grid"></span>Pregled doma</a>
+      <a href="#zones" data-page="zones"><span data-icon="layers"></span>Zone grijanja<span class="nav-count">2</span></a>
+      <a href="#schedule" data-page="schedule"><span data-icon="calendar"></span>Rasporedi</a>
+      <a href="#charts" data-page="charts"><span data-icon="chart"></span>Grafikoni</a>
+      <a href="#settings" data-page="settings"><span data-icon="settings"></span>Postavke sustava</a>
+    </nav>
+    <div class="sidebar-bottom"><div class="connection-mini"><span class="tiny-dot" id="sidebar-dot"></span><div id="sidebar-status">Povezivanje s izvorom…</div></div><button class="source-button" id="connection-button"><span data-icon="link"></span>Veza sa sustavom<span>↗</span></button><div class="local-label"><span data-icon="monitor"></span>LOKALNA APLIKACIJA <span>1.0</span></div></div>
+  </aside>
+  <div class="app-shell">
+    <header class="topbar"><div class="breadcrumb">Moj dom <span>/</span> <strong id="breadcrumb-current">Pregled</strong></div><div class="top-actions"><span id="connection-pill" class="pill neutral"><i></i>Povezivanje</span><button id="refresh-button" class="icon-button" title="Osvježi očitanja" aria-label="Osvježi očitanja"><span data-icon="refresh"></span></button><span class="avatar" title="Moj dom" data-icon="home"></span></div></header>
+    <main id="main" tabindex="-1"><div class="page-intro"><div><div class="eyebrow">MOJ DOM, MOJA TEMPERATURA</div><h1>Udobnost počinje ovdje.</h1><p>Spajanje s vašim sustavom grijanja…</p></div></div><div class="loading-card"><span class="loader"></span>Dohvaćam stvarna očitanja sa sustava</div></main>
+    <footer class="footer"><span><span class="tiny-dot"></span>TermoDom <span class="footer-sep">·</span> automatiziraj.se</span><span id="last-updated">Čekam prvo očitanje</span></footer>
+  </div>
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+  <dialog id="modal"><div id="modal-content"></div></dialog>
+</body>
+</html>

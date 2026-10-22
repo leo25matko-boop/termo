@@ -1,0 +1,41 @@
+{
+  "name": "termodom",
+  "version": "1.0.0",
+  "description": "Windows aplikacija za upravljanje grijanjem",
+  "author": "TermoDom",
+  "private": true,
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis zip --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.0.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "se.automatiziraj.termodom",
+    "productName": "TermoDom",
+    "artifactName": "TermoDom-Windows.${ext}",
+    "asar": true,
+    "directories": {"output": "release", "buildResources": "desktop"},
+    "files": ["desktop/**", "lib/**", "public/**", "github.json", "UPUTE.txt", "FUNKCIJE.txt", "README.md", "package.json"],
+    "win": {
+      "target": [{"target":"nsis","arch":["x64"]},{"target":"zip","arch":["x64"]}],
+      "icon": "desktop/icon.ico",
+      "signExecutable": false
+    },
+    "nsis": {
+      "artifactName": "TermoDom-Setup-${version}-x64.exe",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "TermoDom",
+      "installerIcon": "desktop/icon.ico",
+      "uninstallerIcon": "desktop/icon.ico",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

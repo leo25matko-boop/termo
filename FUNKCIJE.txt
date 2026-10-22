@@ -1,0 +1,56 @@
+TermoDom — popis funkcija izvornog sustava
+Izvor: https://automatiziraj.se/centralno/php/novo.php
+Pregledano: 22. 10. 2026.
+
+1. GLAVNI PREGLED (novo.php)
+- Temperatura kata i prizemlja; poveznice na njihove grafove.
+- Trenutna temperatura vode i planirana temperatura za oba kruga.
+- Stanja crpki kata i prizemlja prema ikonama izvornika.
+- Vanjska temperatura i postotna vrijednost označena "Posto".
+- Temperatura puffera: vrh, sredina i dno; poveznica na graf.
+- Stanje crpke između peći i puffera prema ikoni izvornika.
+- Temperatura sanitarne vode, stanje crpke i poveznica na graf.
+- Temperatura peći, stanje ventilatora i poveznica na graf.
+- Vrijeme prikazano na stranici i "vrijeme sistema".
+- Izvorni tekstovi "SYNC prizemlje" i "SYNC kat". Bez dodatne vrijednosti
+  u izvoru ti tekstovi nisu pouzdan pokazatelj sinkronizacije.
+- Broj "Resetirano" kao informacija; izvor ovdje nema tipku za resetiranje.
+- Poveznice Kat, Prizemlje, Postavke, Tuya temperatura i nadzor napona.
+- Odjava putem ../scr/logout.scr.php.
+- Automatsko osvježavanje nakon 90 sekundi.
+
+2. SATNI RASPOREDI (kat.php i prizemlje.php)
+- Odvojeno podešavanje za Kat i Prizemlje, po 24 vrijednosti za 0–23 h.
+- Prikaz postojećih zadanih vrijednosti i dodatnog izvornog reda vrijednosti.
+- Kat: 18–33 °C, korak 0,1 °C.
+- Prizemlje: 18–25 °C, korak 0,1 °C.
+- Slanje cijelog rasporeda na dodajPODESAVANJA.php metodom GET.
+- Parametri n0–n23; kat=2 za Kat, kat=1 za Prizemlje.
+- Povratak na glavni pregled.
+
+3. POSTAVKE (podesavanje.php)
+- n0: Zadana temperatura sanitarne vode.
+- n1: Zadana temperatura vode za grijanje.
+- n2: Zadana temperatura klimatizacije dnevna.
+- n3: Zadana temperatura klimatizacije Leo.
+- n4: Zadana temperatura klimatizacije Luka.
+- n5: Zadano stanje klimatizacije 1/0.
+- Izvorni gumb PRENESI šalje svih šest vrijednosti na zapisi_postavke.php.
+
+4. POVIJEST I GRAFOVI
+- graf_kat_temp.php: t_kt, t_kt_z, radi_pumpa_kat.
+- graf_prizemlje_temp.php: t_pr, t_pr_z, radi_pumpa_priz.
+- graf_puffer_temp.php: vrh, sredina, dno.
+- graf_sanitarna_temp.php: temperatura i pumpa.
+- graf_pec_temp2.php: danas, jučer i pumpa.
+- grafVANJ.php: vanjska_temperatura.
+- graf_tuya.php: Dnevna, Kupaona, Podrum, Vani, Kuhinja; prikaz 24 sata.
+  Dodatne izvorne poveznice: grafP1.php (1 h), grafp1-6.php (6 h).
+  Obje dodatne poveznice pri provjeri izvornika vraćale su HTTP 404.
+- graf_napon2.php: Faza A, Faza B, Faza C i alarmna referentna linija.
+  Izvor koristi prag 251 V, premda je legenda nazvana "ALARM 250V".
+  Naponski skok označava kada je razlika susjednih uzoraka veća od 10 V.
+
+Lokalna aplikacija koristi očitanja s navedenog izvornika. Dostupnost
+povijesti i odgovora na naredbe ovisi o izvornom web-sustavu.
+U dokumentaciju nisu uključene pretpostavljene mogućnosti uređaja.
