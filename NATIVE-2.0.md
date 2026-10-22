@@ -21,6 +21,10 @@ U odjeljku elektrane odaberite **Uvezi datoteku povezivanja** i lokalnu datoteku
 
 Kamera koristi izvorni Xiaomi račun i regiju uređaja. Podrška video prijenosu ovisi o stvarnom modelu i mrežnoj dostupnosti kamere; nikada se ne prikazuje izmišljena slika ili lažno povezano stanje. API ključevi se ne traže. Prijava, dodatna provjera identiteta i stvarna slika kamere moraju se potvrditi korisnikovim računom i uređajem.
 
+Prijava, CAPTCHA ili kod potvrde te video nalaze se u izvornom sučelju TermoDoma. Nije potreban emulator, Google prijava ili pokretanje Xiaomi Home prozora. Aplikacija dohvaća model kamere s računa; za Hrvatsku je zadana regija Europa. Ugrađeni go2rtc transport i LibVLC dekoder podržavaju odgovarajuće Xiaomi protokole. Sesija se sprema šifrirano pomoću Android Keystorea ili Windows DPAPI-ja. Kamerin pomoćni proces sluša samo na uređaju, uz nasumičnu autentikaciju, i ne pruža web sučelje. Pomicanje kamere, dvosmjerni razgovor i arhiva ostaju u pripremi dok ne postoji provjerena podrška.
+
+Windows pri pokretanju može automatski preuzeti ZIP novijeg stabilnog GitHub izdanja. U Postavkama su prekidač, ručna provjera i mapa preuzimanja. Preuzima se isključivo TermoDom-Windows.zip iz izvornog repozitorija, uz provjeru objavljene SHA256 vrijednosti. Preuzimanje ne pokreće instalaciju niti izvršava datoteke.
+
 Ostale integracije sa slikovnih referenci označene su **U pripremi** dok ne postoji stvarno povezivanje. Referentne slike koriste se samo za smjer oblikovanja.
 
 ## Izrada i provjera

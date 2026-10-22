@@ -2,6 +2,8 @@
 
 > Verzija 2.0 prelazi na izvorne Android i Windows aplikacije. Aktualne upute i način izrade nalaze se u [NATIVE-2.0.md](NATIVE-2.0.md). Odjeljci o Electronu i lokalnom web poslužitelju ispod opisuju arhiviranu verziju 1.0.
 
+Instaleri 2.0: [Android APK](https://github.com/leo25matko-boop/termo/releases/download/v2.0.0/TermoDom-Android-2.0.0.apk) · [Windows EXE](https://github.com/leo25matko-boop/termo/releases/download/v2.0.0/TermoDom-Setup-2.0.0-x64.exe) · [Windows ZIP](https://github.com/leo25matko-boop/termo/releases/download/v2.0.0/TermoDom-Windows.zip).
+
 Windows i Android aplikacija za upravljanje postojećim sustavom grijanja na [automatiziraj.se](https://automatiziraj.se/centralno/php/novo.php). Prikazuje stvarne temperature, rasporede i grafikone sustava.
 
 ## Android

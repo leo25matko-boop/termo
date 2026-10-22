@@ -71,7 +71,9 @@ android {
             versionNameSuffix '-debug'
         }
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (hasReleaseSigning && !unsignedRelease) {
                 signingConfig signingConfigs.release
             }

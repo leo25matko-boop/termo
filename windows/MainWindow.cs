@@ -18,6 +18,7 @@ public sealed class MainWindow : Window
     static readonly CultureInfo Hr = CultureInfo.GetCultureInfo("hr-HR");
     static readonly Brush Mint = Color("#79D8C4"), Amber = Color("#E7B469"), Muted = Color("#9FB1BC"), Surface = Color("#192632");
     readonly HeatingRepository repository;
+    readonly GitHubUpdateService? updates;
     readonly SolarRepository solarRepository = new();
     readonly bool verification;
     readonly Grid layout = new();
@@ -42,11 +43,14 @@ public sealed class MainWindow : Window
     NativeChart? activeChart;
     readonly List<Slider> scheduleSliders = [];
     CameraPanel? cameraPanel;
+    TextBlock? updateStatusText;
 
     public MainWindow(bool verification = false)
     {
         this.verification = verification;
         repository = verification ? NativeVerification.Repository() : new HeatingRepository();
+        updates = verification ? null : new GitHubUpdateService();
+        if (updates != null) updates.StatusChanged += () => Dispatcher.BeginInvoke(() => { if (updateStatusText != null) updateStatusText.Text = updates.Status; });
         Title = "TermoDom · Pametni dom"; Width = 1320; Height = 940; MinWidth = 1000; MinHeight = 720; WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Background = Color("#101923"); Foreground = Color("#EDF3F5"); FontFamily = new FontFamily("Segoe UI"); FontSize = 14;
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(214) });
@@ -61,7 +65,7 @@ public sealed class MainWindow : Window
         DockPanel.SetDock(notice, Dock.Top); main.Children.Add(notice);
         scroll = new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Padding = new Thickness(0, 0, 10, 0) };
         main.Children.Add(scroll);
-        Loaded += async (_, _) => { if (!verification) { await LoadStatus(); timer.Start(); } };
+        Loaded += async (_, _) => { if (!verification) { if (updates?.Enabled == true) _ = updates.CheckAsync(); await LoadStatus(); timer.Start(); } };
         timer.Tick += async (_, _) => { if (IsActive && !saving) { await LoadStatus(false); if (page == "solar" && solarRepository.SharedUrl != null) await LoadSolar(false); } };
         Activated += async (_, _) => { if (!verification && fetchedAt.HasValue && DateTime.Now - fetchedAt.Value > TimeSpan.FromSeconds(90) && !saving) await LoadStatus(false); };
         Closing += (_, e) =>
@@ -114,7 +118,7 @@ public sealed class MainWindow : Window
     }
     void Render()
     {
-        body.Children.Clear(); footer.Children.Clear(); activeChart = null;
+        body.Children.Clear(); footer.Children.Clear(); activeChart = null; updateStatusText = null;
         if (page == "home") Home(); else if (page == "heating") Heating(); else if (page == "solar") Solar(); else if (page == "camera") Camera(); else Prepared();
         freshness.Text = fetchedAt.HasValue ? "Grijanje osvježeno u " + fetchedAt.Value.ToString("HH:mm:ss", Hr) : "Čekam podatke izvornog sustava";
     }
@@ -225,7 +229,7 @@ public sealed class MainWindow : Window
     {
         body.Children.Add(T("Postavke regulatora", 23, null, true));
         body.Children.Add(T("Vrijednosti, nazivi i preciznost dolaze iz postojećeg sustava. Primjena na regulatoru prati se na pregledu.", 13, Muted));
-        if (settings == null || settingDraft == null) { body.Children.Add(T("Učitavam postavke…", 16, Muted)); return; }
+        if (settings == null || settingDraft == null) { body.Children.Add(T("Učitavam postavke…", 16, Muted)); UpdateCard(); return; }
         var fields = new StackPanel();
         for (var i = 0; i < 6; i++)
         {
@@ -249,6 +253,18 @@ public sealed class MainWindow : Window
             if (MessageBox.Show(this, "Odjaviti ovu aplikaciju iz izvornog sustava grijanja?", "Odjava", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
             await Run(async () => { await repository.Logout(); status = null; schedules.Clear(); drafts.Clear(); settings = null; settingDraft = null; chart = null; ShowNotice("Sesija je odjavljena."); Render(); });
         }));
+        UpdateCard();
+    }
+    void UpdateCard()
+    {
+        var panel = Stack(T("Nadogradnje", 20, null, true), T("Verzija 2.0.0 · ZIP novije verzije automatski se preuzima s vašeg GitHub repozitorija. Instalaciju pokrećete sami.", 13, Muted));
+        var automatic = new CheckBox { Content = "Automatski provjeri i preuzmi ZIP pri pokretanju", IsChecked = updates?.Enabled ?? true, IsEnabled = !verification };
+        automatic.Checked += (_, _) => { try { updates?.SetEnabled(true); } catch { ShowNotice("Postavka nadogradnje nije spremljena.", true); } };
+        automatic.Unchecked += (_, _) => { try { updates?.SetEnabled(false); } catch { ShowNotice("Postavka nadogradnje nije spremljena.", true); } };
+        panel.Children.Add(automatic); updateStatusText = T(updates?.Status ?? "Automatsko preuzimanje je uključeno. Provjera izgleda ne pristupa GitHubu.", 13, Mint); panel.Children.Add(updateStatusText);
+        var actions = new WrapPanel(); var check = Button("Provjeri i preuzmi ZIP", async () => { if (updates != null) await updates.CheckAsync(); }, "updates-check"); check.IsEnabled = !verification; actions.Children.Add(check);
+        var folder = Button("Otvori mapu preuzimanja", () => { try { updates?.OpenFolder(); } catch { ShowNotice("Mapu preuzimanja nije moguće otvoriti.", true); } }, "updates-folder"); folder.IsEnabled = !verification; actions.Children.Add(folder);
+        panel.Children.Add(actions); body.Children.Add(Card(panel));
     }
     void Charts()
     {

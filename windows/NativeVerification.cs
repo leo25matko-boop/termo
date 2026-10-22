@@ -106,6 +106,13 @@ public static class NativeVerification
             try { CameraEngine.ParseLoginResponse(HttpStatusCode.Unauthorized, raw); throw new Exception("Expected authentication failure"); }
             catch (CameraEngineException e) { Check(!e.Message.Contains(raw, StringComparison.Ordinal), "raw provider errors not exposed"); }
         Reject(() => CameraEngine.ParseLoginResponse(HttpStatusCode.InternalServerError, "private provider body"), "Xiaomi server failure");
+        var release = JsonSerializer.Serialize(new { tag_name = "v2.1.0", draft = false, prerelease = false, assets = new[] { new { name = "TermoDom-Windows.zip", size = 100, digest = "sha256:" + new string('a', 64), browser_download_url = "https://github.com/leo25matko-boop/termo/releases/download/v2.1.0/TermoDom-Windows.zip" } } });
+        var package = GitHubUpdateService.SelectPackage(release, GitHubUpdateService.CurrentVersion);
+        Check(package?.Version == new Version(2, 1, 0) && package.Size == 100, "native GitHub update metadata");
+        Check(GitHubUpdateService.SelectPackage(release, new Version(2, 1, 0)) == null, "same version not redownloaded");
+        Reject(() => GitHubUpdateService.SelectPackage(release.Replace("sha256:", "unknown:"), GitHubUpdateService.CurrentVersion), "update must have published SHA256");
+        Reject(() => GitHubUpdateService.SelectPackage(release.Replace("https://github.com/", "https://example.com/"), GitHubUpdateService.CurrentVersion), "foreign update download rejected");
+        Reject(() => GitHubUpdateService.ValidateHash(new byte[32], new string('a', 64)), "corrupt update hash rejected");
         var saved = Enumerable.Repeat(31.2, 24).ToArray(); var writes = 0; var reads = 0;
         var repo = new HeatingRepository((uri, _, mutation) =>
         {
