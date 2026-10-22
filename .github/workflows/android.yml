@@ -59,21 +59,46 @@ jobs:
         working-directory: android
         run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease -PtermodomUnsigned=true --no-daemon --stacktrace
 
+      - name: Upload APK for private signing
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: termodom-android-unsigned
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
       - name: Prepare Android emulator
         run: |
           set -euo pipefail
           sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          export ANDROID_USER_HOME="$RUNNER_TEMP/termodom-android"
+          export ANDROID_AVD_HOME="$RUNNER_TEMP/termodom-avd"
+          mkdir -p "$ANDROID_USER_HOME" "$ANDROID_AVD_HOME" android-verification
           # Use only the runner's existing licenses. Never automatically accept new terms.
           "$sdk/cmdline-tools/latest/bin/sdkmanager" --install 'emulator' 'system-images;android-35;default;x86_64' </dev/null
-          printf 'no\n' | "$sdk/cmdline-tools/latest/bin/avdmanager" create avd --force --name termodom-native --package 'system-images;android-35;default;x86_64' --device pixel_5
+          printf 'no\n' | "$sdk/cmdline-tools/latest/bin/avdmanager" create avd --force --name termodom-native --path "$ANDROID_AVD_HOME/termodom-native.avd" --package 'system-images;android-35;default;x86_64' --device pixel_5
+          test -f "$ANDROID_AVD_HOME/termodom-native.ini"
+          "$sdk/emulator/emulator" -list-avds
+          df -h "$RUNNER_TEMP"
           if [[ -e /dev/kvm ]]; then sudo chmod 666 /dev/kvm; fi
-          mkdir -p android-verification
           "$sdk/emulator/emulator" -avd termodom-native -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader -memory 2048 -cores 2 >android-verification/emulator.log 2>&1 &
-          echo "$!" >android-verification/emulator.pid
+          emulator_pid=$!
+          echo "$emulator_pid" >android-verification/emulator.pid
           export PATH="$sdk/platform-tools:$PATH"
-          timeout 300 adb wait-for-device
+          adb start-server
+          connected=false
+          for attempt in $(seq 1 90); do
+            if ! kill -0 "$emulator_pid" 2>/dev/null; then cat android-verification/emulator.log; exit 1; fi
+            if [[ "$(adb get-state 2>/dev/null || true)" == 'device' ]]; then connected=true; break; fi
+            if (( attempt % 10 == 0 )); then tail -n 12 android-verification/emulator.log; fi
+            sleep 2
+          done
+          if [[ "$connected" != true ]]; then cat android-verification/emulator.log; exit 1; fi
           for attempt in $(seq 1 120); do
             if [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == '1' ]]; then break; fi
+            if ! kill -0 "$emulator_pid" 2>/dev/null; then cat android-verification/emulator.log; exit 1; fi
+            if (( attempt % 10 == 0 )); then tail -n 8 android-verification/emulator.log; fi
             sleep 2
           done
           [[ "$(adb shell getprop sys.boot_completed | tr -d '\r')" == '1' ]]
@@ -114,11 +139,3 @@ jobs:
           sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           "$sdk/platform-tools/adb" emu kill || true
 
-      - name: Upload APK for private signing
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: termodom-android-unsigned
-          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
-          if-no-files-found: error
-          retention-days: 7
-          compression-level: 0
