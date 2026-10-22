@@ -134,7 +134,7 @@ public final class NativeSmokeInstrumentation extends Instrumentation {
         runOnMainSync(()->{
             org.videolan.libvlc.LibVLC lib=null;
             org.videolan.libvlc.MediaPlayer player=null;
-            try { lib=new org.videolan.libvlc.LibVLC(getTargetContext(),new java.util.ArrayList<>(java.util.Arrays.asList("--no-metadata-network-access","--no-lua","--no-video-title-show","--quiet")));player=new org.videolan.libvlc.MediaPlayer(lib); }
+            try { lib=new org.videolan.libvlc.LibVLC(getTargetContext(),new java.util.ArrayList<>(java.util.Arrays.asList("--no-metadata-network-access","--no-lua","--no-video-title-show","--quiet","--verbose=-1")));player=new org.videolan.libvlc.MediaPlayer(lib); }
             catch(Throwable error){failure.set(error);}
             finally { if(player!=null)player.release();if(lib!=null)lib.release(); }
         });

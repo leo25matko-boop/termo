@@ -63,6 +63,8 @@ def prepare(destination, archive_path=None):
                  '\tif ConfigPath == ":memory:" {\n\t\tb, err := yaml.Patch(memoryConfig, path, value)\n\t\tif err == nil { memoryConfig = b }\n\t\treturn err\n\t}\n\n\t// empty config is OK\n\tb, _ := os.ReadFile(ConfigPath)')
     replace_once(config, '\tfor _, conf := range confs {\n',
                  '\tfor _, conf := range confs {\n\t\tif conf == "-" {\n\t\t\tdata, err := io.ReadAll(io.LimitReader(os.Stdin, 1<<20))\n\t\t\tif err != nil { panic("camera configuration pipe failed") }\n\t\t\tmemoryConfig = data\n\t\t\tConfigPath = ":memory:"\n\t\t\tconfigs = append(configs, data)\n\t\t\tcontinue\n\t\t}\n')
+    replace_once(config, 'if ConfigPath != "" {\n\t\tif !filepath.IsAbs(ConfigPath)',
+                 'if ConfigPath != "" && ConfigPath != ":memory:" {\n\t\tif !filepath.IsAbs(ConfigPath)')
 
     # 4. Authenticated, allowlisted private JSON session export; never a web UI.
     xiaomi = destination / 'internal/xiaomi/xiaomi.go'
@@ -141,9 +143,23 @@ func TestTermodomRequiresLocalAuthentication(t *testing.T) {
     (destination / 'internal/app/termodom_memory_test.go').write_text('''package app
 
 import (
+    "os"
     "strings"
     "testing"
 )
+
+func TestTermodomStdinConfigKeepsMemorySentinel(t *testing.T) {
+    previousInput, previousPath, previousConfig, previousConfigs := os.Stdin, ConfigPath, memoryConfig, configs
+    defer func() { os.Stdin, ConfigPath, memoryConfig, configs = previousInput, previousPath, previousConfig, previousConfigs }()
+    reader, writer, err := os.Pipe()
+    if err != nil { t.Fatal(err) }
+    defer reader.Close()
+    if _, err = writer.WriteString(`{"xiaomi":{},"streams":{}}`); err != nil { t.Fatal(err) }
+    writer.Close()
+    os.Stdin = reader
+    initConfig(flagConfig{"-"})
+    if ConfigPath != ":memory:" { t.Fatal("memory config became a disk path") }
+}
 
 func TestTermodomRuntimePatchesStayInMemory(t *testing.T) {
     previousPath, previousConfig := ConfigPath, memoryConfig

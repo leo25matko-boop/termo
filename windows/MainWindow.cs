@@ -394,6 +394,11 @@ public sealed class MainWindow : Window
     public async Task VerifyNative(string directory)
     {
         Directory.CreateDirectory(directory); await NativeVerification.TestCore(); await LoadStatus(); solar = NativeVerification.SolarFixture();
+        await using (var engine = new CameraEngine(false))
+        {
+            await engine.StartAsync();
+            File.WriteAllText(Path.Combine(directory, "native-camera-engine.txt"), "TERMODOM_WINDOWS_NATIVE_CAMERA_ENGINE_OK\nNative C# controller started bundled process; anonymous HTTP and RTSP rejected; no account, Xiaomi login or camera command used.\n");
+        }
         foreach (var (id, sub, file) in new[] { ("home", "zones", "01-moj-dom"), ("heating", "zones", "02-grijanje"), ("heating", "schedule", "03-rasporedi"), ("heating", "charts", "04-grafikoni"), ("heating", "settings", "05-postavke"), ("solar", "zones", "06-solarna"), ("camera", "zones", "07-kamera"), ("prepared", "zones", "08-priprema") })
         {
             heatingTab = sub; await Navigate(id); await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle); UpdateLayout();

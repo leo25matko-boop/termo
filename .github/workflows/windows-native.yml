@@ -9,6 +9,7 @@ on:
       - '.github/workflows/windows-native.yml'
       - 'scripts/build-camera-engine.ps1'
       - 'scripts/prepare-camera-engine.py'
+      - 'scripts/verify-camera-engine.py'
 
 permissions:
   contents: read
@@ -43,7 +44,11 @@ jobs:
 
       - name: Build and verify private camera transport
         shell: pwsh
-        run: ./scripts/build-camera-engine.ps1 -Destination ./windows/camera -SourceDirectory "$env:RUNNER_TEMP/termodom-camera-source"
+        run: |
+          ./scripts/build-camera-engine.ps1 -Destination ./windows/camera -SourceDirectory "$env:RUNNER_TEMP/termodom-camera-source"
+          if ($LASTEXITCODE -ne 0) { throw 'Camera transport build failed.' }
+          python scripts/verify-camera-engine.py --engine windows/camera/termodom-camera.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Private camera isolation verification failed.' }
 
       - name: Publish self-contained native Windows app
         run: dotnet publish windows/TermoDom.Windows.csproj -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=false -p:DebugType=None -o windows/publish
@@ -66,6 +71,22 @@ jobs:
           $screens = @(Get-ChildItem -LiteralPath $evidence -Filter '*.png')
           if ($screens.Count -ne 8) { throw 'Expected eight native Windows screens.' }
           Remove-Item -LiteralPath windows/publish/core-tests.txt -Force
+
+      - name: Verify native video decoder with pinned local media
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $fixture = Join-Path $env:RUNNER_TEMP 'termodom-decoder-fixture.mp4'
+          Invoke-WebRequest -Uri 'https://media.w3.org/2010/05/sintel/trailer.mp4' -OutFile $fixture
+          $expected = 'b670602fa00934ca27c4351bb0efe7ea7a07fae57284e44226025eeed7c51254'
+          if ((Get-FileHash -LiteralPath $fixture -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) { throw 'Native decoder fixture digest differs.' }
+          $process = Start-Process -FilePath (Join-Path $PWD 'windows/publish/TermoDom.exe') -ArgumentList "--verify-decoder=$fixture" -WindowStyle Hidden -PassThru
+          if (-not $process.WaitForExit(30000)) { $process.Kill(); throw 'Native decoder verification timed out.' }
+          if ($process.ExitCode -ne 0) { Get-Content windows/publish/native-verification-error.txt -ErrorAction SilentlyContinue; throw 'Native decoder failed.' }
+          Copy-Item windows/publish/native-decoder.txt windows-verification/native-decoder.txt
+          Copy-Item windows/publish/native-decoder-frame.png windows-verification/native-decoder-frame.png
+          Get-Content windows-verification/native-decoder.txt
+          Remove-Item -LiteralPath windows/publish/native-decoder.txt,windows/publish/native-decoder-frame.png -Force
 
       - name: Build per-user EXE installer
         shell: pwsh

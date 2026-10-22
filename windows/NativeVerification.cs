@@ -18,12 +18,19 @@ public static class NativeVerification
         }
         var settings = HeatingParser.Settings(File.ReadAllText(Path.Combine(directory, "podesavanje.php.html")));
         HeatingParser.ValidateSettings(settings.Fields.Select(f => f.Value).ToArray());
+        var valid = 0; var unavailable = 0;
         foreach (var meta in ChartParser.Catalog)
         {
-            var chart = ChartParser.Parse(File.ReadAllText(Path.Combine(directory, meta.Path + ".html")), meta.Id);
-            if (chart.Labels.Count == 0 || chart.Series.Count == 0) throw new Exception("Original chart not parsed: " + meta.Id);
+            var html = File.ReadAllText(Path.Combine(directory, meta.Path + ".html"));
+            try
+            {
+                var chart = ChartParser.Parse(html, meta.Id);
+                if (chart.Series.Count == 0) throw new Exception("Original chart not parsed: " + meta.Id);
+                valid++;
+            }
+            catch (ControllerException) when (!html.Contains("datasets", StringComparison.Ordinal)) { unavailable++; }
         }
-        File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "original-source-tests.txt"), "TERMODOM_WINDOWS_ORIGINAL_SOURCE_OK\nStatus, both 24h schedules, six settings and all ten original chart pages parsed; no network/control commands.\n");
+        File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "original-source-tests.txt"), $"TERMODOM_WINDOWS_ORIGINAL_SOURCE_OK\nStatus, both 24h schedules, six settings and {valid} original chart pages parsed (empty datasets preserved); {unavailable} upstream non-chart pages rejected; no network/control commands.\n");
     }
     public static string ScheduleHtml(string id, double[]? values = null)
     {

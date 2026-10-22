@@ -33,12 +33,12 @@ public sealed class CameraEngine : IAsyncDisposable
     private Dictionary<string, string> savedTokens = new();
     private bool disposed;
 
-    public CameraEngine()
+    public CameraEngine(bool restoreSavedSession = true)
     {
         executablePath = Path.Combine(AppContext.BaseDirectory, "camera", "termodom-camera.exe");
         string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TermoDom");
         statePath = Path.Combine(directory, "camera-session.dpapi");
-        LoadSession();
+        if (restoreSavedSession) LoadSession();
     }
 
     public bool HasSavedAccount => savedTokens.Count > 0;

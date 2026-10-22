@@ -9,6 +9,13 @@ public partial class App : Application
         base.OnStartup(e);
         try
         {
+            var decoderFixture = e.Args.FirstOrDefault(x => x.StartsWith("--verify-decoder="))?.Split('=', 2)[1];
+            if (decoderFixture != null)
+            {
+                await NativeDecoderVerification.Run(decoderFixture);
+                Shutdown(0);
+                return;
+            }
             var sourceDir = e.Args.FirstOrDefault(x => x.StartsWith("--verify-source="))?.Split('=', 2)[1];
             if (sourceDir != null)
             {
