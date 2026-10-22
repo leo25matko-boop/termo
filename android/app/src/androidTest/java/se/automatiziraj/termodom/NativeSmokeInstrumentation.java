@@ -113,7 +113,7 @@ public final class NativeSmokeInstrumentation extends Instrumentation {
                 check(panel instanceof CameraPanel,"Native camera panel is missing.");
                 ((CameraPanel)panel).showPreviewForTest();
             });
-            waitFor("camera preview",()->findDescription(activity.getWindow().getDecorView(),"camera-preview-label")!=null);
+            waitFor("camera",()->findDescription(activity.getWindow().getDecorView(),"camera-preview-label")!=null);
             verifyNativeHierarchy();
             check(findDescription(activity.getWindow().getDecorView(),"camera-fullscreen")!=null,"Native full screen control is missing.");
             check(findDescription(activity.getWindow().getDecorView(),"camera-quality") instanceof android.widget.Spinner,"Native stream quality selector is missing.");
