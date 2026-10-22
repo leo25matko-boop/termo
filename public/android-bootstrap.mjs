@@ -140,6 +140,9 @@ function installAndroid() {
   });
   document.addEventListener('click', event => {
     const anchor = event.target.closest?.('a[href]');
+    // A hash link resolves to the HTTPS asset origin on Android. Let the app's
+    // normal navigation handle it before considering external browser links.
+    if (anchor?.getAttribute('href')?.startsWith('#')) return;
     if (!anchor || !/^https?:/i.test(anchor.href)) return;
     event.preventDefault();
     if (allowedExternal(anchor.href)) bridge.openExternal(anchor.href);
