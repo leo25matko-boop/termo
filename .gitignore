@@ -1,0 +1,8 @@
+runtime/
+downloads/
+*.zip
+*.part
+*.log
+.env
+.DS_Store
+Thumbs.db
