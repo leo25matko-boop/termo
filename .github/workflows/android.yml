@@ -4,9 +4,6 @@ on:
   push:
     paths:
       - 'android/**'
-      - 'public/**'
-      - 'lib/**'
-      - 'scripts/**'
       - '.github/workflows/android.yml'
   workflow_dispatch:
 
@@ -19,9 +16,9 @@ concurrency:
 
 jobs:
   build:
-    name: Build Android release for local signing
+    name: Verify native Android app and build release for local signing
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 35
     defaults:
       run:
         shell: bash
@@ -50,8 +47,6 @@ jobs:
             echo '::error::This runner must have Android SDK Build Tools 35.0.0 preinstalled.'
             exit 1
           fi
-          command -v node
-          node --version
           java -version
 
       - name: Verify Gradle wrapper
@@ -60,9 +55,64 @@ jobs:
           echo '81a82aaea5abcc8ff68b3dfcb58b3c3c429378efd98e7433460610fecd7ae45f  android/gradle/wrapper/gradle-wrapper.jar' | sha256sum --check --strict
           chmod +x android/gradlew
 
-      - name: Build unsigned release APK
+      - name: Test native parsers and build APKs
         working-directory: android
-        run: ./gradlew :app:assembleRelease -PtermodomUnsigned=true --no-daemon --stacktrace
+        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease -PtermodomUnsigned=true --no-daemon --stacktrace
+
+      - name: Prepare Android emulator
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          # Use only the runner's existing licenses. Never automatically accept new terms.
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --install 'emulator' 'system-images;android-35;default;x86_64' </dev/null
+          printf 'no\n' | "$sdk/cmdline-tools/latest/bin/avdmanager" create avd --force --name termodom-native --package 'system-images;android-35;default;x86_64' --device pixel_5
+          if [[ -e /dev/kvm ]]; then sudo chmod 666 /dev/kvm; fi
+          mkdir -p android-verification
+          "$sdk/emulator/emulator" -avd termodom-native -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader -memory 2048 -cores 2 >android-verification/emulator.log 2>&1 &
+          echo "$!" >android-verification/emulator.pid
+          export PATH="$sdk/platform-tools:$PATH"
+          timeout 300 adb wait-for-device
+          for attempt in $(seq 1 120); do
+            if [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == '1' ]]; then break; fi
+            sleep 2
+          done
+          [[ "$(adb shell getprop sys.boot_completed | tr -d '\r')" == '1' ]]
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          adb shell wm size 1080x2340
+          adb shell wm density 440
+          adb shell input keyevent 82
+
+      - name: Verify native navigation and capture phone screens
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          export PATH="$sdk/platform-tools:$PATH"
+          adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+          adb install -r android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb shell am instrument -w se.automatiziraj.termodom.debug.test/se.automatiziraj.termodom.NativeSmokeInstrumentation | tee android-verification/native-smoke.txt
+          adb logcat -d -t 500 >android-verification/android-logcat.txt
+          adb pull /sdcard/Android/data/se.automatiziraj.termodom.debug/files/native-smoke android-verification/screens || true
+          grep -q 'TERMODOM_NATIVE_SMOKE_OK' android-verification/native-smoke.txt
+
+      - name: Upload native verification results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: termodom-android-native-verification
+          path: |
+            android/app/build/reports/tests/testDebugUnitTest/
+            android/app/build/test-results/testDebugUnitTest/
+            android-verification/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Stop Android emulator
+        if: always()
+        run: |
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          "$sdk/platform-tools/adb" emu kill || true
 
       - name: Upload APK for private signing
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

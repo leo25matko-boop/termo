@@ -1,0 +1,177 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Naponi - 24h monitoring</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
+
+<style>
+body {
+    background:#222;
+    color:#fff;
+    font-family:Arial;
+    text-align:center;
+}
+.container {
+    width:95%;
+    margin:auto;
+}
+canvas {
+    background:#111;
+}
+</style>
+</head>
+
+<body>
+
+<h2>⚡ Monitoring napona (24h)</h2>
+
+<div class="container">
+<canvas id="chart"></canvas>
+</div>
+
+<script>
+const limit = 251;
+
+// ---------------- PODACI ----------------
+var dataA = [];
+var dataB = [];
+var dataC = [];
+
+// ---------------- LABELS ----------------
+var labels = [];
+
+// ---------------- SPIKE DETEKCIJA ----------------
+function spikes(data) {
+    return data.map((v,i) => {
+        if(i===0) return false;
+        return Math.abs(v - data[i-1]) > 10;
+    });
+}
+
+// ---------------- BOJE ----------------
+// FAZA A → zelena
+function colorA(data) {
+    return data.map(v => v > limit ? 'red' : '#4caf50');
+}
+
+// FAZA B → žuta
+function colorB(data) {
+    return data.map(v => v > limit ? 'red' : '#fdd835');
+}
+
+// FAZA C → narančasta
+function colorC(data) {
+    return data.map(v => v > limit ? 'red' : '#fb8c00');
+}
+// ---------------- ALERT ----------------
+function checkAlarm(data) {
+    data.forEach(v => {
+        if(v > limit) {
+            console.log("ALARM:", v);
+        }
+    });
+}
+
+checkAlarm(dataA);
+checkAlarm(dataB);
+checkAlarm(dataC);
+
+// ---------------- CHART ----------------
+var ctx = document.getElementById("chart").getContext("2d");
+
+var chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [
+
+            // FAZA A
+            
+            {
+                label: "Faza A",
+                data: dataA,
+                borderColor: '#4caf50', // linija uvijek zelena,
+                pointBackgroundColor: colorA(dataA),
+                borderWidth: 3,
+                fill: false,
+                pointRadius: spikes(dataA).map(s => s ? 6 : 2),
+                pointStyle: spikes(dataA).map(s => s ? 'rectRot' : 'circle')
+            },
+
+            // FAZA B
+            {
+                label: "Faza B",
+                data: dataB,
+                borderColor: '#fdd835',
+                pointBackgroundColor: colorB(dataB),
+                borderDash: [5,5],
+                borderWidth: 2,
+                fill: false,
+                pointRadius: spikes(dataB).map(s => s ? 6 : 2)
+            },
+
+            // FAZA C
+            {
+                label: "Faza C",
+                data: dataC,
+                 borderColor: '#fb8c00',
+                pointBackgroundColor: colorC(dataC),
+                borderWidth: 3,
+                fill: false,
+                pointRadius: spikes(dataC).map(s => s ? 6 : 2)
+            },
+
+            // ---------------- ALARM LINIJA ----------------
+            {
+                label: "ALARM 250V",
+                data: Array(dataA.length).fill(limit),
+                borderColor: "red",
+                borderDash: [10,5],
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: false
+            }
+
+        ]
+    },
+
+    options: {
+        responsive: true,
+        tooltips: { mode: 'index' },
+
+        scales: {
+            yAxes: [{
+                ticks: {
+                    beginAtZero: false
+                }
+            }],
+            xAxes: [{
+                maxTicksLimit: 20
+            }]
+        },
+
+        legend: {
+            labels: { fontColor: "#fff" }
+        },
+
+        // ---------------- GLOBAL ALARM ----------------
+        animation: {
+            onComplete: function() {
+
+                let over = [...dataA, ...dataB, ...dataC].some(v => v > limit);
+
+                if(over) {
+                    document.body.style.background = "#400000";
+                    //alert("⚠️ UPOZORENJE: NAPON PREKO 250!");
+                }
+            }
+        }
+    }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html>
+<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../css/izgled.css">
+
+<style>
+
+* {
+    margin: 0px;
+}
+
+
+a:link, a:visited {
+  background-color: #ccc;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+}
+
+a:hover, a:active {
+  background-color: #ddd;
+}
+.row::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+/* For mobile phones: */
+ 
+  
+  .col-m-1 {width: 8.33%;}
+  .col-m-2 {width: 16.66%;}
+  .col-m-3 {width: 25%;}
+  .col-m-4 {width: 33.33%;}
+  .col-m-5 {width: 41.66%;}
+  .col-m-6 {width: 50%;}
+  .col-m-7 {width: 58.33%; display: none;}
+  .col-m-8 {width: 66.66%;}
+  .col-m-9 {width: 75%;}
+  .col-m-10 {width: 83.33%;}
+  .col-m-11 {width: 91.66%;}
+  .col-m-12 {width: 100%;}
+ 
+  
+
+
+@media screen and (min-width: 768px) {
+  /* For desktop: */
+  .col-1 {width: 8.33%; }
+  .col-2 {width: 16.66%;}
+  .col-3 {width: 25%;}
+  .col-4 {width: 33.33%;display: block;}
+  .col-5 {width: 41.66%;}
+  .col-6 {width: 50%;}
+  .col-7 {width: 58.33%;}
+  .col-8 {width: 66.66%;}
+  .col-9 {width: 75%;}
+  .col-10 {width: 83.33%;}
+  .col-11 {width: 91.66%;}
+  .col-12 {width: 100%;}
+  
+.naslov{
+    width: 100%;
+    height: 75px;
+    padding: 30px 10px 10px 10px;
+    background: #020599;
+    color: #ffffff;
+    text-align: center;
+    font-size: 34px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+}
+
+html {
+  font-family: "Lucida Sans", sans-serif;
+}
+
+
+
+input[type=range][orient=vertical]
+{
+    writing-mode: bt-lr; /* IE */
+    -webkit-appearance: slider-vertical; /* WebKit */
+    display: inline-block;
+    width: 3.75%;
+    height: 205px;
+    cursor: pointer;
+    opacity: 0.5;
+}
+
+input[type=range][orient=vertical]:hover{
+    opacity: 1;
+}
+.prazno{
+    width: 100%;
+    height: 15px;
+    padding: 10px 10px 10px 10px;
+    background: #888;
+    color: #ffffff;
+    text-align: center;
+    font-size: 34px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); 
+}
+.gumb_submit{
+    width: 30%;
+    height: 45px;
+    background: #ccc;
+    padding: 20px;
+  text-align: center;
+  text-decoration: none;
+  display: block;
+  font-size: 16px;
+  margin: 40px auto;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.gumb_back{
+    width: 10%;
+    height: 25px;
+    background: #ccc;
+    padding: 5px;
+  text-align: center;
+  display: block;
+  font-size: 14px;
+  margin: 10px 80% 10px 10%;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.zadana_temp {
+    display: inline-block;
+    width: 3.75%;
+    background: #005500;
+    color: #ffffff;
+    text-align: center;
+    font-size: 16px;
+    
+}
+
+.default_temp {
+    display: inline-block;
+    width: 3.75%;
+    background: #DD5500;
+    color: #ffffff;
+    text-align: center;
+    font-size: 16px;
+    
+}
+
+.nova_temp {
+    display: inline-block;
+    width: 3.75%;
+    height: 45px;
+    background: #009900;
+    color: #ffffff;
+    text-align: center;
+    font-size: 18px;
+    opacity: 0.5;
+    
+}
+
+
+.vrijeme {
+    display: inline-block;
+    width: 3.75%;
+    height: 15px;
+    background: #888;
+    color: #ffffff;
+    text-align: center;
+    font-size: 12px;
+    
+}
+
+
+</style>
+
+</head>
+
+<body>
+    
+    
+
+<div class="naslov">Podesite željenu temperaturu kata</div>
+<div class="prazno"></div>
+
+
+<div class="row">
+    <div class="default_temp">50.00</div> 
+    <div class="default_temp">50.00</div> 
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+    <div class="default_temp">50.00</div>
+</div> 
+<div class="prazno"></div>
+<div class="row">
+    <div class="vrijeme">0h</div> 
+    <div class="vrijeme">1h</div> 
+    <div class="vrijeme">2h</div>
+    <div class="vrijeme">3h</div>
+    <div class="vrijeme">4h</div>
+    <div class="vrijeme">5h</div>
+    <div class="vrijeme">6h</div>
+    <div class="vrijeme">7h</div>
+    <div class="vrijeme">8h</div>
+    <div class="vrijeme">9h</div>
+    <div class="vrijeme">10h</div>
+    <div class="vrijeme">11h</div>
+    <div class="vrijeme">12h</div>
+    <div class="vrijeme">13h</div>
+    <div class="vrijeme">14h</div>
+    <div class="vrijeme">15h</div>
+    <div class="vrijeme">16h</div>
+    <div class="vrijeme">17h</div>
+    <div class="vrijeme">18h</div>
+    <div class="vrijeme">19h</div>
+    <div class="vrijeme">20h</div>
+    <div class="vrijeme">21h</div>
+    <div class="vrijeme">22h</div>
+    <div class="vrijeme">23h</div>
+</div> 
+<div class="row">
+    <div class="zadana_temp">25.50</div> 
+    <div class="zadana_temp">24.00</div> 
+    <div class="zadana_temp">24.00</div>
+    <div class="zadana_temp">24.00</div>
+    <div class="zadana_temp">24.00</div>
+    <div class="zadana_temp">25.50</div>
+    <div class="zadana_temp">25.50</div>
+    <div class="zadana_temp">25.50</div>
+    <div class="zadana_temp">25.50</div>
+    <div class="zadana_temp">25.00</div>
+    <div class="zadana_temp">24.80</div>
+    <div class="zadana_temp">25.10</div>
+    <div class="zadana_temp">25.10</div>
+    <div class="zadana_temp">25.30</div>
+    <div class="zadana_temp">25.20</div>
+    <div class="zadana_temp">25.50</div>
+    <div class="zadana_temp">25.30</div>
+    <div class="zadana_temp">25.30</div>
+    <div class="zadana_temp">25.50</div>
+    <div class="zadana_temp">25.50</div>
+    <div class="zadana_temp">25.80</div>
+    <div class="zadana_temp">25.80</div>
+    <div class="zadana_temp">25.90</div>
+    <div class="zadana_temp">25.70</div>
+</div> 
+
+<div>  <form action="dodajPODESAVANJA.php" method="get">
+<div class="slider"> 
+   <input id="n0" name="n0" type="range"  min="18" max="33" step="0.1" value="25.50" orient="vertical" />
+   <input id="n1" name="n1" type="range"  min="18" max="33" step="0.1" value="24.00" orient="vertical" />
+   <input id="n2" name="n2" type="range"  min="18" max="33" step="0.1" value="24.00" orient="vertical" />
+   <input id="n3" name="n3" type="range"  min="18" max="33" step="0.1" value="24.00" orient="vertical" />
+   <input id="n4" name="n4" type="range"  min="18" max="33" step="0.1" value="24.00" orient="vertical" />
+   <input id="n5" name="n5" type="range"  min="18" max="33" step="0.1" value="25.50" orient="vertical" />
+   <input id="n6" name="n6" type="range"  min="18" max="33" step="0.1" value="25.50" orient="vertical" />
+   <input id="n7" name="n7" type="range"  min="18" max="33" step="0.1" value="25.50" orient="vertical" />
+   <input id="n8" name="n8" type="range"  min="18" max="33" step="0.1" value="25.50" orient="vertical" />
+   <input id="n9" name="n9" type="range"  min="18" max="33" step="0.1" value="25.00" orient="vertical" />
+   <input id="n10" name="n10" type="range" min="18" max="33" step="0.1" value="24.80" orient="vertical" />
+   <input id="n11" name="n11" type="range" min="18" max="33" step="0.1" value="25.10" orient="vertical" />
+   <input id="n12" name="n12" type="range" min="18" max="33" step="0.1" value="25.10" orient="vertical" />
+   <input id="n13" name="n13" type="range" min="18" max="33" step="0.1" value="25.30" orient="vertical" />
+   <input id="n14" name="n14" type="range" min="18" max="33" step="0.1" value="25.20" orient="vertical" />
+   <input id="n15" name="n15" type="range" min="18" max="33" step="0.1" value="25.50" orient="vertical" />
+   <input id="n16" name="n16" type="range" min="18" max="33" step="0.1" value="25.30" orient="vertical" />
+   <input id="n17" name="n17" type="range" min="18" max="33" step="0.1" value="25.30" orient="vertical" />
+   <input id="n18" name="n18" type="range" min="18" max="33" step="0.1" value="25.50" orient="vertical" />
+   <input id="n19" name="n19" type="range" min="18" max="33" step="0.1" value="25.50" orient="vertical" />
+   <input id="n20" name="n20" type="range" min="18" max="33" step="0.1" value="25.80" orient="vertical" />
+   <input id="n21" name="n21" type="range" min="18" max="33" step="0.1" value="25.80" orient="vertical" />
+   <input id="n22" name="n22" type="range" min="18" max="33" step="0.1" value="25.90" orient="vertical" />
+   <input id="n23" name="n23" type="range" min="18" max="33" step="0.1" value="25.70" orient="vertical" />
+   <input type="hidden" id="kat" name="kat" value="2">
+   
+
+</div>
+
+<div class="row">
+    <div class="nova_temp"><p id="n_h0"></p></div> 
+    <div class="nova_temp"><p id="n_h1"></p></div> 
+    <div class="nova_temp"><p id="n_h2"></p></div>
+    <div class="nova_temp"><p id="n_h3"></p></div>
+    <div class="nova_temp"><p id="n_h4"></p></div>
+    <div class="nova_temp"><p id="n_h5"></p></div>
+    <div class="nova_temp"><p id="n_h6"></p></div>
+    <div class="nova_temp"><p id="n_h7"></p></div>
+    <div class="nova_temp"><p id="n_h8"></p></div>
+    <div class="nova_temp"><p id="n_h9"></p></div>
+    <div class="nova_temp"><p id="n_h10"></p></div>
+    <div class="nova_temp"><p id="n_h11"></p></div>
+    <div class="nova_temp"><p id="n_h12"></p></div>
+    <div class="nova_temp"><p id="n_h13"></p></div>
+    <div class="nova_temp"><p id="n_h14"></p></div>
+    <div class="nova_temp"><p id="n_h15"></p></div>
+    <div class="nova_temp"><p id="n_h16"></p></div>
+    <div class="nova_temp"><p id="n_h17"></p></div>
+    <div class="nova_temp"><p id="n_h18"></p></div>
+    <div class="nova_temp"><p id="n_h19"></p></div>
+    <div class="nova_temp"><p id="n_h20"></p></div>
+    <div class="nova_temp"><p id="n_h21"></p></div>
+    <div class="nova_temp"><p id="n_h22"></p></div>
+    <div class="nova_temp"><p id="n_h23"></p></div>
+</div> 
+
+<input class="gumb_submit" type="submit" >
+</form>
+
+<div class="gumb_back"><a href="novo.php">Natrag</a></div>
+
+<script>
+var n0 = document.getElementById("n0");
+var output_n_h0 = document.getElementById("n_h0");
+output_n_h0.innerHTML = n0.value;
+n0.oninput = function() {
+  output_n_h0.innerHTML = this.value;
+}
+var n1 = document.getElementById("n1");
+var output_n_h1 = document.getElementById("n_h1");
+output_n_h1.innerHTML = n1.value;
+n1.oninput = function() {
+  output_n_h1.innerHTML = this.value;
+}
+var n2 = document.getElementById("n2");
+var output_n_h2 = document.getElementById("n_h2");
+output_n_h2.innerHTML = n2.value;
+n2.oninput = function() {
+  output_n_h2.innerHTML = this.value;
+}
+
+var n3 = document.getElementById("n3");
+var output_n_h3 = document.getElementById("n_h3");
+output_n_h3.innerHTML = n3.value;
+n3.oninput = function() {
+  output_n_h3.innerHTML = this.value;
+}
+var n4 = document.getElementById("n4");
+var output_n_h4 = document.getElementById("n_h4");
+output_n_h4.innerHTML = n4.value;
+n4.oninput = function() {
+  output_n_h4.innerHTML = this.value;
+}
+var n5 = document.getElementById("n5");
+var output_n_h5 = document.getElementById("n_h5");
+output_n_h5.innerHTML = n5.value;
+n5.oninput = function() {
+  output_n_h5.innerHTML = this.value;
+}
+var n6 = document.getElementById("n6");
+var output_n_h6 = document.getElementById("n_h6");
+output_n_h6.innerHTML = n6.value;
+n6.oninput = function() {
+  output_n_h6.innerHTML = this.value;
+}
+var n7 = document.getElementById("n7");
+var output_n_h7 = document.getElementById("n_h7");
+output_n_h7.innerHTML = n7.value;
+n7.oninput = function() {
+  output_n_h7.innerHTML = this.value;
+}
+var n8 = document.getElementById("n8");
+var output_n_h8 = document.getElementById("n_h8");
+output_n_h8.innerHTML = n8.value;
+n8.oninput = function() {
+  output_n_h8.innerHTML = this.value;
+}
+var n9 = document.getElementById("n9");
+var output_n_h9 = document.getElementById("n_h9");
+output_n_h9.innerHTML = n9.value;
+n9.oninput = function() {
+  output_n_h9.innerHTML = this.value;
+}
+var n10 = document.getElementById("n10");
+var output_n_h10 = document.getElementById("n_h10");
+output_n_h10.innerHTML = n10.value;
+n10.oninput = function() {
+  output_n_h10.innerHTML = this.value;
+}
+var n11 = document.getElementById("n11");
+var output_n_h11 = document.getElementById("n_h11");
+output_n_h11.innerHTML = n11.value;
+n11.oninput = function() {
+  output_n_h11.innerHTML = this.value;
+}
+var n12 = document.getElementById("n12");
+var output_n_h12 = document.getElementById("n_h12");
+output_n_h12.innerHTML = n12.value;
+n12.oninput = function() {
+  output_n_h12.innerHTML = this.value;
+}
+var n13 = document.getElementById("n13");
+var output_n_h13 = document.getElementById("n_h13");
+output_n_h13.innerHTML = n13.value;
+n13.oninput = function() {
+  output_n_h13.innerHTML = this.value;
+}
+var n14 = document.getElementById("n14");
+var output_n_h14 = document.getElementById("n_h14");
+output_n_h14.innerHTML = n14.value;
+n14.oninput = function() {
+  output_n_h14.innerHTML = this.value;
+}
+var n15 = document.getElementById("n15");
+var output_n_h15 = document.getElementById("n_h15");
+output_n_h15.innerHTML = n15.value;
+n15.oninput = function() {
+  output_n_h15.innerHTML = this.value;
+}
+var n16 = document.getElementById("n16");
+var output_n_h16 = document.getElementById("n_h16");
+output_n_h16.innerHTML = n16.value;
+n16.oninput = function() {
+  output_n_h16.innerHTML = this.value;
+}
+var n17 = document.getElementById("n17");
+var output_n_h17 = document.getElementById("n_h17");
+output_n_h17.innerHTML = n17.value;
+n17.oninput = function() {
+  output_n_h17.innerHTML = this.value;
+}
+var n18 = document.getElementById("n18");
+var output_n_h18 = document.getElementById("n_h18");
+output_n_h18.innerHTML = n18.value;
+n18.oninput = function() {
+  output_n_h18.innerHTML = this.value;
+}
+var n19 = document.getElementById("n19");
+var output_n_h19 = document.getElementById("n_h19");
+output_n_h19.innerHTML = n19.value;
+n19.oninput = function() {
+  output_n_h19.innerHTML = this.value;
+}
+var n20 = document.getElementById("n20");
+var output_n_h20 = document.getElementById("n_h20");
+output_n_h20.innerHTML = n20.value;
+n20.oninput = function() {
+  output_n_h20.innerHTML = this.value;
+}
+var n21 = document.getElementById("n21");
+var output_n_h21 = document.getElementById("n_h21");
+output_n_h21.innerHTML = n21.value;
+n21.oninput = function() {
+  output_n_h21.innerHTML = this.value;
+}
+var n22 = document.getElementById("n22");
+var output_n_h22 = document.getElementById("n_h22");
+output_n_h22.innerHTML = n22.value;
+n22.oninput = function() {
+  output_n_h22.innerHTML = this.value;
+}
+var n23 = document.getElementById("n23");
+var output_n_h23 = document.getElementById("n_h23");
+output_n_h23.innerHTML = n23.value;
+n23.oninput = function() {
+  output_n_h23.innerHTML = this.value;
+}
+
+
+</script>
+
+</body>
+</html>
+

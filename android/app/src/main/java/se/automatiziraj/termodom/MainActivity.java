@@ -1,524 +1,159 @@
 package se.automatiziraj.termodom;
 
-import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.content.ActivityNotFoundException;
-import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.Insets;
+import android.app.*;
+import android.content.*;
+import android.content.res.*;
+import android.graphics.*;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
-import android.net.http.SslError;
-import android.os.Build;
-import android.os.Bundle;
-import android.view.View;
-import android.view.WindowInsets;
-import android.view.WindowManager;
-import android.webkit.CookieManager;
-import android.webkit.JavascriptInterface;
-import android.webkit.PermissionRequest;
-import android.webkit.SslErrorHandler;
-import android.webkit.WebChromeClient;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebResourceResponse;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import android.widget.FrameLayout;
-import android.widget.Toast;
+import android.os.*;
+import android.text.*;
+import android.view.*;
+import android.widget.*;
 import android.window.OnBackInvokedCallback;
-
-import androidx.webkit.WebViewAssetLoader;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
+import org.json.*;
 import java.io.OutputStream;
-import java.net.URI;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.Consumer;
 
-import javax.net.ssl.HttpsURLConnection;
-
-/** A local, installed controller. Only the Java bridge can contact the heating server. */
+/** All screens use Android Views and Canvas; the heating source is data only. */
 public final class MainActivity extends Activity {
-    private static final String ASSET_HOST = "appassets.androidplatform.net";
-    private static final String HOME = "https://" + ASSET_HOST + "/assets/public/index.html";
-    private static final String SOURCE_HOST = "automatiziraj.se";
-    private static final int MAX_RESPONSE = 5_000_000;
-    private static final Set<String> PATHS = new HashSet<>(Arrays.asList(
-            "/centralno/php/novo.php", "/centralno/php/kat.php",
-            "/centralno/php/prizemlje.php", "/centralno/php/podesavanje.php",
-            "/centralno/php/graf_kat_temp.php", "/centralno/php/graf_prizemlje_temp.php",
-            "/centralno/php/graf_puffer_temp.php", "/centralno/php/graf_sanitarna_temp.php",
-            "/centralno/php/graf_pec_temp2.php", "/centralno/php/grafVANJ.php",
-            "/centralno/php/graf_tuya.php", "/centralno/php/graf_napon2.php",
-            "/centralno/php/grafP1.php", "/centralno/php/grafp1-6.php",
-            "/centralno/php/dodajPODESAVANJA.php", "/centralno/php/zapisi_postavke.php",
-            "/centralno/scr/logout.scr.php"));
-    private static final Set<String> HEADERS = new HashSet<>(Arrays.asList(
-            "accept", "user-agent", "cookie"));
-
-    private final AtomicBoolean trustedPage = new AtomicBoolean(false);
-    private final ConcurrentHashMap<String, NetworkJob> jobs = new ConcurrentHashMap<>();
-    private final ThreadPoolExecutor requests = new ThreadPoolExecutor(
-            2, 2, 30, TimeUnit.SECONDS, new ArrayBlockingQueue<>(32));
-    private WebView webView;
-    private volatile boolean destroyed;
+    public static HeatingRepository testRepository;
+    private static final int GREEN=0xff153d35,INK=0xff254c3d,MUTED=0xff81917b,SAGE=0xff96ad71,PALE=0xffedf2e5,BG=0xfff5f6f2,WHITE=0xffffffff;
+    private static final String[] IDS={"overview","zones","schedule","charts","settings"},NAMES={"Pregled","Zone","Rasporedi","Grafikoni","Postavke"};
+    private static final String[] SETTING_NAMES={"Sanitarna voda","Voda za grijanje","Klima · Dnevna","Klima · Leo","Klima · Luka","Klimatizacija"};
+    private final Handler ui=new Handler(Looper.getMainLooper());
+    private final ExecutorService executor=Executors.newFixedThreadPool(3);
+    private final Map<String,JSONObject> schedules=new HashMap<>(),charts=new HashMap<>();
+    private final Map<String,double[]> drafts=new HashMap<>();
+    private final Set<String> loadingSchedules=new HashSet<>(),loadingCharts=new HashSet<>();
+    private final Set<Integer> hidden=new HashSet<>();
+    private HeatingRepository repository;
+    private JSONObject status,settings,settingsDraft;
+    private String page="overview",zone="kat",chartId="kat",errorText="",pendingCsv;
+    private boolean online,statusLoading,settingsLoading,saving,destroyed,resumed;
+    private int activeRequests,period=24;
+    private long lastRead;
+    private LinearLayout content,actions,nav;
+    private ScrollView scroll;
+    private TextView headerTitle,connection,note;
+    private Button save,refresh;
+    private ProgressBar progress;
+    private NativeChartView schedulePlot;
+    private AlertDialog dialog;
     private OnBackInvokedCallback backCallback;
-    private byte[] pendingCsv;
-    private static final int CREATE_CSV = 1704;
+    private final Runnable poll=new Runnable(){public void run(){if(!resumed||destroyed)return;loadStatus(false);if(page.equals("schedule"))loadSchedule(zone);ui.postDelayed(this,90000);}};
 
-    @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
-    @Override public void onCreate(Bundle state) {
-        super.onCreate(state);
+    @Override public void onCreate(Bundle saved){
+        super.onCreate(saved);repository=BuildConfig.DEBUG&&testRepository!=null?testRepository:new HeatingRepository();
+        if(saved!=null)restore(saved);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-        final int background = Color.rgb(245, 246, 242);
-        FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(background);
-        configureInsets(root);
-        webView = new WebView(this);
-        webView.setBackgroundColor(background);
-        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        root.addView(webView, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-        setContentView(root);
-        root.requestApplyInsets();
-
-        WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setAllowFileAccess(false);
-        settings.setAllowContentAccess(false);
-        settings.setAllowFileAccessFromFileURLs(false);
-        settings.setAllowUniversalAccessFromFileURLs(false);
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        settings.setBlockNetworkLoads(true);
-        settings.setJavaScriptCanOpenWindowsAutomatically(false);
-        settings.setSupportMultipleWindows(false);
-        settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setGeolocationEnabled(false);
-        settings.setSafeBrowsingEnabled(true);
-        settings.setTextZoom(100);
-        CookieManager.getInstance().setAcceptCookie(false);
-        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, false);
-        WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
-
-        final WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
-                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
-                .build();
-        webView.setWebViewClient(new WebViewClient() {
-            @Override public WebResourceResponse shouldInterceptRequest(
-                    WebView view, WebResourceRequest request) {
-                Uri uri = request.getUrl();
-                if (isAsset(uri) && "GET".equals(request.getMethod())) {
-                    WebResourceResponse response = assetLoader.shouldInterceptRequest(uri);
-                    if (response != null) {
-                        // Older Android MIME tables do not recognize ECMAScript modules.
-                        if (uri.getPath().endsWith(".mjs") || uri.getPath().endsWith(".js")) {
-                            response.setMimeType("text/javascript");
-                            response.setEncoding("UTF-8");
-                        }
-                        return response;
-                    }
-                }
-                return blockedResponse();
-            }
-
-            @Override public boolean shouldOverrideUrlLoading(
-                    WebView view, WebResourceRequest request) {
-                if (isHome(request.getUrl())) return false;
-                if (request.isForMainFrame()) openExternal(request.getUrl().toString());
-                return true;
-            }
-
-            @Override public void onPageStarted(WebView view, String url,
-                                              android.graphics.Bitmap favicon) {
-                trustedPage.set(isHome(Uri.parse(url)));
-            }
-
-            @Override public void onReceivedSslError(WebView view, SslErrorHandler handler,
-                                                     SslError error) {
-                handler.cancel();
-            }
-        });
-        webView.setWebChromeClient(new WebChromeClient() {
-            @Override public void onPermissionRequest(PermissionRequest request) {
-                request.deny();
-            }
-        });
-        webView.addJavascriptInterface(new MobileBridge(), "MobileBridge");
-        if (Build.VERSION.SDK_INT >= 33) {
-            backCallback = this::handleBack;
-            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(0, backCallback);
-        }
-        webView.loadUrl(HOME);
+        shell();render(false);
+        if(Build.VERSION.SDK_INT>=33){backCallback=this::back;getOnBackInvokedDispatcher().registerOnBackInvokedCallback(0,backCallback);}
+        loadStatus(false);loadSchedule("kat");loadSchedule("prizemlje");
+        if(page.equals("settings"))loadSettings();if(page.equals("charts"))loadChart(chartId);
     }
-
-    @SuppressWarnings("deprecation")
-    private void configureInsets(FrameLayout root) {
-        getWindow().setStatusBarColor(Color.TRANSPARENT);
-        getWindow().setNavigationBarColor(Color.TRANSPARENT);
-        if (Build.VERSION.SDK_INT >= 30) {
-            getWindow().setDecorFitsSystemWindows(false);
-            root.setOnApplyWindowInsetsListener((view, insets) -> {
-                Insets bars = insets.getInsets(WindowInsets.Type.systemBars()
-                        | WindowInsets.Type.displayCutout());
-                Insets keyboard = insets.getInsets(WindowInsets.Type.ime());
-                view.setPadding(bars.left, bars.top, bars.right,
-                        Math.max(bars.bottom, keyboard.bottom));
-                android.view.WindowInsetsController controller = view.getWindowInsetsController();
-                if (controller != null) controller.setSystemBarsAppearance(
-                        android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-                                | android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
-                        android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-                                | android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
-                // The native container owns the safe area; do not inset WebView twice.
-                return WindowInsets.CONSUMED;
-            });
-        } else {
-            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-                    | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-            root.setOnApplyWindowInsetsListener((view, insets) -> {
-                view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(),
-                        insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
-                return insets.consumeSystemWindowInsets();
-            });
-        }
+    private int dp(float v){return Math.round(v*getResources().getDisplayMetrics().density);}
+    private GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
+    private LinearLayout column(){LinearLayout l=new LinearLayout(this);l.setOrientation(1);return l;}
+    private LinearLayout row(){LinearLayout l=new LinearLayout(this);l.setOrientation(0);l.setGravity(Gravity.CENTER_VERTICAL);return l;}
+    private LinearLayout.LayoutParams weight(){return new LinearLayout.LayoutParams(0,-2,1);}
+    private TextView text(String label,int size,int color,boolean bold){TextView t=new TextView(this);t.setText(label);t.setTextSize(size);t.setTextColor(color);t.setFontFeatureSettings("tnum");t.setLineSpacing(dp(2),1);if(bold)t.setTypeface(Typeface.create("sans-serif-medium",0));return t;}
+    private void add(LinearLayout p,View v){p.addView(v,new LinearLayout.LayoutParams(-1,-2));}
+    private void gap(LinearLayout p,int h){p.addView(new View(this),new LinearLayout.LayoutParams(1,dp(h)));}
+    private Button button(String label,boolean primary,Runnable action){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextSize(13);b.setTypeface(Typeface.create("sans-serif-medium",0));b.setTextColor(primary?WHITE:GREEN);b.setBackground(bg(primary?GREEN:PALE,14));b.setMinHeight(dp(48));b.setMinimumHeight(dp(48));b.setPadding(dp(12),dp(8),dp(12),dp(8));b.setStateListAnimator(null);b.setOnClickListener(v->{if(!saving)action.run();else toast("Spremanje je u tijeku.");});return b;}
+    private LinearLayout card(){return card(content);}
+    private LinearLayout card(LinearLayout parent){LinearLayout l=column();l.setPadding(dp(17),dp(18),dp(17),dp(18));l.setBackground(bg(WHITE,23));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(14);parent.addView(l,p);return l;}
+    private void title(String eyebrow,String title,String subtitle){TextView e=text(eyebrow.toUpperCase(Locale.ROOT),9,MUTED,true);e.setLetterSpacing(.15f);add(content,e);gap(content,8);add(content,text(title,28,INK,true));gap(content,7);add(content,text(subtitle,13,MUTED,false));gap(content,22);}
+    private void section(String label){gap(content,10);add(content,text(label,18,INK,true));gap(content,13);}
+    private void metric(LinearLayout p,String label,String value){LinearLayout r=row();r.addView(text(label,12,MUTED,false),weight());TextView t=text(value,14,INK,true);t.setGravity(Gravity.END);r.addView(t);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.topMargin=dp(9);p.addView(r,lp);}
+    private double val(JSONObject o,String k){return o==null?Double.NaN:o.optDouble(k,Double.NaN);}
+    private String num(double v,int digits){return Double.isFinite(v)?String.format(Locale.forLanguageTag("hr-HR"),"%."+digits+"f",v):"—";}
+    private String temp(double v){return num(v,1)+" °C";}
+    private String time(String raw){if(raw==null||raw.isEmpty())return "—";if(raw.endsWith("Z")){try{return java.time.Instant.parse(raw).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));}catch(Exception ignored){}}String s=raw.replace('T',' ');return s.length()>=19?s.substring(11,19):s;}
+    private String running(JSONObject o,String k){Object v=o==null?null:o.opt(k);return Boolean.TRUE.equals(v)?"Radi":Boolean.FALSE.equals(v)?"U mirovanju":"Nepoznato";}
+    private boolean equal(double a,double b){return Double.isFinite(a)&&Double.isFinite(b)&&Math.abs(a-b)<.00001;}
+    private void shell(){
+        FrameLayout root=new FrameLayout(this);root.setBackgroundColor(BG);insets(root);LinearLayout shell=column();root.addView(shell,new FrameLayout.LayoutParams(-1,-1));setContentView(root);root.requestApplyInsets();
+        LinearLayout header=column();header.setPadding(dp(20),dp(12),dp(14),dp(6));header.setBackgroundColor(GREEN);LinearLayout line=row(),copy=column();copy.addView(text("termodom",24,WHITE,true));headerTitle=text("Udobnost pod kontrolom",10,0xffc1d4be,false);copy.addView(headerTitle);line.addView(copy,weight());refresh=button("↻",false,()->refreshAll(true));refresh.setTextSize(27);refresh.setTextColor(WHITE);refresh.setBackground(bg(0xff2b5143,13));refresh.setContentDescription("Osvježi očitanja");line.addView(refresh,new LinearLayout.LayoutParams(dp(48),dp(48)));add(header,line);
+        connection=text("● Povezivanje sa sustavom…",11,0xffcfddc6,false);connection.setGravity(Gravity.CENTER_VERTICAL);connection.setMinHeight(dp(44));connection.setContentDescription("Veza sa sustavom");connection.setOnClickListener(v->connectionDialog());add(header,connection);add(shell,header);
+        progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setIndeterminate(true);progress.setIndeterminateTintList(ColorStateList.valueOf(SAGE));shell.addView(progress,new LinearLayout.LayoutParams(-1,dp(3)));
+        scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);content=column();content.setPadding(dp(18),dp(25),dp(18),dp(24));scroll.addView(content);shell.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        actions=column();actions.setPadding(dp(15),dp(8),dp(15),dp(9));actions.setBackgroundColor(WHITE);add(shell,actions);nav=row();nav.setPadding(dp(6),dp(6),dp(6),dp(7));nav.setBackgroundColor(WHITE);add(shell,nav);
     }
-
-    private static boolean isAsset(Uri uri) {
-        return "https".equals(uri.getScheme()) && ASSET_HOST.equals(uri.getHost())
-                && uri.getPort() == -1 && uri.getUserInfo() == null
-                && uri.getPath() != null && (uri.getPath().startsWith("/assets/public/")
-                || uri.getPath().startsWith("/assets/lib/"));
-    }
-
-    private static boolean isHome(Uri uri) {
-        return isAsset(uri) && "/assets/public/index.html".equals(uri.getPath())
-                && uri.getQuery() == null;
-    }
-
-    private static WebResourceResponse blockedResponse() {
-        return new WebResourceResponse("text/plain", "UTF-8", 403, "Blocked",
-                java.util.Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
-    }
-
-    private void handleBack() {
-        if (!destroyed && webView != null && trustedPage.get()) {
-            webView.evaluateJavascript(
-                    "window.dispatchEvent(new CustomEvent('termodom-back'));", null);
-        } else finish();
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override public void onBackPressed() { handleBack(); }
-
-    @Override protected void onPause() {
-        if (webView != null) {
-            if (trustedPage.get()) webView.evaluateJavascript(
-                    "window.dispatchEvent(new CustomEvent('termodom-pause'));", null);
-            webView.onPause();
-        }
-        super.onPause();
-    }
-
-    @Override protected void onResume() {
-        super.onResume();
-        if (webView != null) {
-            webView.onResume();
-            if (trustedPage.get()) webView.evaluateJavascript(
-                    "window.dispatchEvent(new CustomEvent('termodom-resume'));", null);
-        }
-    }
-
-    @Override protected void onDestroy() {
-        destroyed = true;
-        trustedPage.set(false);
-        for (NetworkJob job : jobs.values()) job.cancel();
-        jobs.clear();
-        requests.shutdownNow();
-        if (Build.VERSION.SDK_INT >= 33 && backCallback != null) {
-            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);
-        }
-        if (webView != null) {
-            webView.removeJavascriptInterface("MobileBridge");
-            webView.stopLoading();
-            webView.destroy();
-            webView = null;
-        }
-        super.onDestroy();
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode != CREATE_CSV) return;
-        final byte[] content = pendingCsv;
-        pendingCsv = null;
-        if (resultCode != RESULT_OK || data == null || data.getData() == null || content == null) {
-            exportResult(false, "Spremanje je otkazano.");
-            return;
-        }
-        final Uri destination = data.getData();
-        if (!"content".equals(destination.getScheme())) {
-            exportResult(false, "Odabrana datoteka nije dostupna za spremanje.");
-            return;
-        }
-        try {
-            requests.execute(() -> {
-                try (OutputStream output = getContentResolver().openOutputStream(destination, "wt")) {
-                    if (output == null) throw new java.io.IOException("No output stream");
-                    output.write(content);
-                    output.flush();
-                    exportResult(true, "CSV datoteka je spremljena.");
-                } catch (Exception error) {
-                    exportResult(false, "CSV datoteka nije spremljena. Pokušajte ponovno.");
-                }
-            });
-        } catch (RejectedExecutionException busy) {
-            exportResult(false, "Aplikacija je zauzeta. Pokušajte ponovno spremiti CSV.");
-        }
-    }
-
-    private void exportResult(boolean success, String message) {
-        if (destroyed) return;
-        runOnUiThread(() -> {
-            if (!destroyed && trustedPage.get() && webView != null) {
-                webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('termodom-export',"
-                        + "{detail:{success:" + success + ",message:" + JSONObject.quote(message)
-                        + "}}));", null);
-            }
-        });
-    }
-
-    private void respond(String id, JSONObject response) {
-        if (destroyed) return;
-        runOnUiThread(() -> {
-            if (!destroyed && trustedPage.get() && webView != null) {
-                webView.evaluateJavascript("window.__termodomNativeResponse && "
-                        + "window.__termodomNativeResponse(" + JSONObject.quote(id)
-                        + "," + response + ");", null);
-            }
-        });
-    }
-
-    private void respondError(String id, String message) {
-        JSONObject response = new JSONObject();
-        try { response.put("error", message); }
-        catch (JSONException impossible) { return; }
-        respond(id, response);
-    }
-
-    private void openExternal(String value) {
-        if (destroyed || !trustedPage.get() || value == null || value.length() > 2048) return;
-        try {
-            URI uri = new URI(value);
-            if (!"https".equals(uri.getScheme()) || uri.getUserInfo() != null
-                    || uri.getPort() != -1 || uri.getRawQuery() != null
-                    || uri.getRawFragment() != null) return;
-            boolean original = SOURCE_HOST.equals(uri.getHost())
-                    && "/centralno/php/novo.php".equals(uri.getRawPath());
-            String path = uri.getRawPath();
-            boolean repository = "github.com".equals(uri.getHost())
-                    && ("/leo25matko-boop/termo".equals(path)
-                    || "/leo25matko-boop/termo/releases".equals(path)
-                    || "/leo25matko-boop/termo/releases/latest".equals(path)
-                    || path.startsWith("/leo25matko-boop/termo/releases/download/")
-                    || path.startsWith("/leo25matko-boop/termo/releases/tag/"));
-            if (!original && !repository) return;
-            runOnUiThread(() -> {
-                if (destroyed) return;
-                try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(value))
-                        .addCategory(Intent.CATEGORY_BROWSABLE)); }
-                catch (ActivityNotFoundException error) {
-                    Toast.makeText(this, "Nije pronađena aplikacija za otvaranje poveznice.",
-                            Toast.LENGTH_SHORT).show();
-                }
-            });
-        } catch (Exception ignored) { /* An invalid external URL is never opened. */ }
-    }
-
-    public final class MobileBridge {
-        @JavascriptInterface public void request(String json) {
-            if (destroyed || !trustedPage.get() || json == null || json.length() > 16_384) return;
-            String id = "";
-            try {
-                JSONObject input = new JSONObject(json);
-                id = input.getString("id");
-                if (!id.matches("[A-Za-z0-9_-]{1,120}")) return;
-                NetworkJob job = new NetworkJob(id, input);
-                if (jobs.putIfAbsent(id, job) != null) {
-                    respondError(id, "Zahtjev s tim identifikatorom već postoji.");
-                    return;
-                }
-                try { requests.execute(job); }
-                catch (RejectedExecutionException busy) {
-                    jobs.remove(id, job);
-                    respondError(id, "Previše istodobnih zahtjeva. Pokušajte ponovno.");
-                }
-            } catch (Exception invalid) {
-                if (!id.isEmpty()) respondError(id, "Neispravan zahtjev aplikacije.");
-            }
-        }
-
-        @JavascriptInterface public void cancel(String id) {
-            if (destroyed || !trustedPage.get() || id == null) return;
-            NetworkJob job = jobs.get(id);
-            if (job != null) {
-                job.cancel();
-                if (requests.remove(job)) jobs.remove(id, job);
-            }
-        }
-
-        @JavascriptInterface public void closeApp() {
-            if (!destroyed && trustedPage.get()) runOnUiThread(() -> finish());
-        }
-
-        @JavascriptInterface public void openExternal(String url) {
-            MainActivity.this.openExternal(url);
-        }
-
-        @JavascriptInterface public void saveCsv(String filename, String content) {
-            if (destroyed || !trustedPage.get()) return;
-            if (filename == null || !filename.matches("TermoDom-[A-Za-z0-9_-]{1,80}\\.csv")
-                    || content == null || content.length() > MAX_RESPONSE) {
-                exportResult(false, "Podaci za spremanje CSV datoteke nisu ispravni.");
-                return;
-            }
-            byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
-            if (bytes.length > MAX_RESPONSE) {
-                exportResult(false, "CSV datoteka je prevelika.");
-                return;
-            }
-            runOnUiThread(() -> {
-                if (destroyed || !trustedPage.get()) return;
-                if (pendingCsv != null) {
-                    exportResult(false, "Najprije dovršite prethodno spremanje datoteke.");
-                    return;
-                }
-                pendingCsv = bytes;
-                Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT)
-                        .addCategory(Intent.CATEGORY_OPENABLE).setType("text/csv")
-                        .putExtra(Intent.EXTRA_TITLE, filename);
-                try { startActivityForResult(intent, CREATE_CSV); }
-                catch (ActivityNotFoundException error) {
-                    pendingCsv = null;
-                    exportResult(false, "Na uređaju nije dostupan odabir mjesta za spremanje.");
-                }
-            });
-        }
-    }
-
-    private final class NetworkJob implements Runnable {
-        private final String id;
-        private final JSONObject input;
-        private volatile HttpsURLConnection connection;
-        private volatile boolean cancelled;
-
-        NetworkJob(String id, JSONObject input) { this.id = id; this.input = input; }
-
-        void cancel() {
-            cancelled = true;
-            HttpsURLConnection active = connection;
-            if (active != null) active.disconnect();
-        }
-
-        @Override public void run() {
-            if (cancelled || destroyed) { jobs.remove(id, this); return; }
-            try {
-                String address = input.getString("url");
-                if (address.length() > 4096) throw new IllegalArgumentException("URL too long");
-                URI uri = new URI(address);
-                if (!"https".equals(uri.getScheme()) || !SOURCE_HOST.equals(uri.getHost())
-                        || (uri.getPort() != -1 && uri.getPort() != 443)
-                        || uri.getUserInfo() != null || uri.getRawFragment() != null
-                        || !PATHS.contains(uri.getRawPath())) {
-                    throw new IllegalArgumentException("URL not allowed");
-                }
-                connection = (HttpsURLConnection) uri.toURL().openConnection();
-                connection.setRequestMethod("GET");
-                connection.setInstanceFollowRedirects(false);
-                connection.setConnectTimeout(20_000);
-                connection.setReadTimeout(20_000);
-                connection.setUseCaches(false);
-                JSONObject headers = input.optJSONObject("headers");
-                if (headers != null) {
-                    java.util.Iterator<String> keys = headers.keys();
-                    while (keys.hasNext()) {
-                        String name = keys.next();
-                        String value = headers.getString(name);
-                        if (!HEADERS.contains(name.toLowerCase(Locale.ROOT))
-                                || value.length() > 8192 || value.indexOf('\r') >= 0
-                                || value.indexOf('\n') >= 0) {
-                            throw new IllegalArgumentException("Header not allowed");
-                        }
-                        connection.setRequestProperty(name, value);
-                    }
-                }
-                if (cancelled) return;
-                int status = connection.getResponseCode();
-                JSONArray responseHeaders = new JSONArray();
-                for (Map.Entry<String, List<String>> header : connection.getHeaderFields().entrySet()) {
-                    if (header.getKey() == null || header.getValue() == null) continue;
-                    for (String value : header.getValue()) responseHeaders.put(
-                            new JSONArray().put(header.getKey()).put(value));
-                }
-                if (connection.getContentLengthLong() > MAX_RESPONSE) {
-                    throw new IllegalArgumentException("Response too large");
-                }
-                InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
-                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-                if (stream != null) {
-                    try (InputStream source = stream) {
-                        byte[] buffer = new byte[8192];
-                        int count;
-                        while (!cancelled && (count = source.read(buffer)) != -1) {
-                            if (bytes.size() + count > MAX_RESPONSE) {
-                                throw new IllegalArgumentException("Response too large");
-                            }
-                            bytes.write(buffer, 0, count);
-                        }
-                    }
-                }
-                Charset charset = StandardCharsets.UTF_8;
-                String contentType = connection.getContentType();
-                if (contentType != null) {
-                    java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(
-                            "(?i)charset\\s*=\\s*[\"']?([A-Za-z0-9._-]+)").matcher(contentType);
-                    if (matcher.find()) {
-                        try { charset = Charset.forName(matcher.group(1)); }
-                        catch (Exception ignored) { /* UTF-8 remains the fallback. */ }
-                    }
-                }
-                if (!cancelled && !destroyed) respond(id, new JSONObject()
-                        .put("status", status).put("headers", responseHeaders)
-                        .put("body", new String(bytes.toByteArray(), charset)));
-            } catch (Exception error) {
-                if (!cancelled && !destroyed) respondError(id,
-                        "Veza sa sustavom grijanja nije dostupna. Provjerite internetsku vezu.");
-            } finally {
-                HttpsURLConnection active = connection;
-                if (active != null) active.disconnect();
-                jobs.remove(id, this);
-            }
-        }
-    }
+    private void navigation(){nav.removeAllViews();for(int i=0;i<IDS.length;i++){String id=IDS[i];boolean selected=id.equals(page);LinearLayout b=column();b.setGravity(Gravity.CENTER);b.setPadding(0,dp(7),0,dp(5));b.setBackground(bg(selected?PALE:WHITE,15));b.setTag("nav-"+id);b.setContentDescription(NAMES[i]);b.setClickable(true);b.setFocusable(true);b.addView(new NavIconView(this,i,selected?GREEN:MUTED),new LinearLayout.LayoutParams(dp(23),dp(23)));TextView label=text(NAMES[i],10,selected?GREEN:MUTED,selected);label.setGravity(Gravity.CENTER);b.addView(label);b.setOnClickListener(v->navigate(id));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(62),1);lp.leftMargin=dp(2);lp.rightMargin=dp(2);nav.addView(b,lp);}}
+    private void navigate(String next){if(saving){toast("Pričekajte potvrdu spremanja.");return;}page=next;render(false);if(next.equals("schedule")&&!schedules.containsKey(zone))loadSchedule(zone);if(next.equals("settings")&&settings==null)loadSettings();if(next.equals("charts")&&!charts.containsKey(chartId))loadChart(chartId);}
+    private void render(boolean keep){if(destroyed||content==null)return;int y=keep?scroll.getScrollY():0;content.removeAllViews();content.setTag("screen-"+page);content.setContentDescription(NAMES[Arrays.asList(IDS).indexOf(page)]);schedulePlot=null;note=null;headerTitle.setText(NAMES[Arrays.asList(IDS).indexOf(page)]+" · Moj dom");navigation();
+        if(!online&&!statusLoading&&status!=null)banner("Veza je prekinuta. Prikazana su posljednja očitanja. "+errorText);
+        switch(page){case "overview":overview();break;case "zones":zones();break;case "schedule":schedule();break;case "charts":charts();break;case "settings":settings();break;}
+        gap(content,14);add(content,text(status==null?"Čekam prvo očitanje":"Zadnje očitanje "+time(status.optString("fetchedAt"))+" · osvježavanje 90 s",10,MUTED,false));actionBar();lockEditors(content,!saving);header();scroll.post(()->scroll.scrollTo(0,y));}
+    private void banner(String message){TextView t=text(message,12,0xff8b6543,false);t.setPadding(dp(14),dp(13),dp(14),dp(13));t.setBackground(bg(0xfffaf0df,15));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(15);content.addView(t,lp);}
+    private void loading(String message){LinearLayout c=card();ProgressBar p=new ProgressBar(this);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(30),dp(30));lp.gravity=Gravity.CENTER;c.addView(p,lp);gap(c,14);TextView t=text(message,13,MUTED,false);t.setGravity(Gravity.CENTER);add(c,t);}
+    private void unavailable(String title,String message,Runnable retry){LinearLayout c=card();add(c,text(title,18,INK,true));gap(c,10);add(c,text(message,13,MUTED,false));gap(c,16);add(c,button("Pokušaj ponovno",true,retry));}
+    private JSONObject zoneData(String id){JSONArray a=status==null?null:status.optJSONArray("zones");if(a!=null)for(int i=0;i<a.length();i++){JSONObject z=a.optJSONObject(i);if(z!=null&&id.equals(z.optString("id")))return z;}return null;}
+    private int hour(){if(status==null)return -1;try{return Integer.parseInt(status.optString("systemTime").split(":")[0]);}catch(Exception e){try{return Integer.parseInt(status.optString("serverTime").substring(11,13));}catch(Exception ignore){return -1;}}}
+    private double target(String id){JSONObject s=schedules.get(id);int h=hour();return s!=null&&h>=0&&h<24?val(s.optJSONArray("fields").optJSONObject(h),"value"):Double.NaN;}
+    private void zoneCard(String id){JSONObject z=zoneData(id);LinearLayout c=card(),top=row();top.addView(text(id.equals("kat")?"Kat":"Prizemlje",18,INK,true),weight());top.addView(text("● "+running(z,"pumpRunning"),10,MUTED,false));add(c,top);LinearLayout body=row();body.addView(new TemperatureDialView(this,val(z,"temperature")),new LinearLayout.LayoutParams(dp(getResources().getConfiguration().screenWidthDp<360?142:158),dp(getResources().getConfiguration().screenWidthDp<360?142:158)));LinearLayout copy=column();copy.addView(text("RASPORED "+(hour()<0?"":String.format(Locale.ROOT,"%02d:00",hour())),9,MUTED,true));gap(copy,4);copy.addView(text(temp(target(id)),22,INK,true));gap(copy,14);copy.addView(text("24 satna programa",10,MUTED,false));body.addView(copy,weight());add(c,body);metric(c,"Voda",temp(val(z,"waterTemperature")));metric(c,"Zadana voda",temp(val(z,"plannedWaterTemperature")));gap(c,15);LinearLayout controls=row();controls.addView(button("Raspored",false,()->{zone=id;navigate("schedule");}),weight());LinearLayout.LayoutParams lp=weight();lp.leftMargin=dp(8);controls.addView(button("Grafikon",false,()->openChart(id)),lp);add(c,controls);}
+    private void syncWarning(){JSONObject s=status==null?null:status.optJSONObject("sync");if(s==null)return;String a=s.optString("kat",""),b=s.optString("prizemlje","");if((a+" "+b).toUpperCase(Locale.ROOT).contains("NO SYNC"))banner("Izvor javlja: "+a+" · "+b+". Dostupna web-stranica ne potvrđuje sinkronizaciju regulatora.");}
+    private void overview(){title("Moj dom, moja temperatura","Udobnost počinje ovdje.","Stvarno stanje vašeg sustava grijanja.");if(status==null){if(statusLoading||errorText.isEmpty())loading("Dohvaćam očitanja…");else unavailable("Izvor trenutačno nije dostupan",errorText,()->refreshAll(true));return;}LinearLayout weather=card();weather.setBackground(bg(PALE,22));add(weather,text("VANJSKA TEMPERATURA",9,MUTED,true));gap(weather,6);add(weather,text(temp(val(status,"outside")),32,INK,true));metric(weather,"Izvorni pokazatelj",num(val(status,"percentage"),0)+" %");syncWarning();section("Zone grijanja");zoneCard("kat");zoneCard("prizemlje");section("Srce vašeg sustava");systemCards();diagnostics();}
+    private void zones(){title("Toplina u svakoj prostoriji","Zone grijanja","Temperatura prostora, voda i stanje pumpi po etažama.");if(status==null){if(statusLoading||errorText.isEmpty())loading("Dohvaćam zone…");else unavailable("Nema očitanja",errorText,()->loadStatus(true));return;}syncWarning();zoneCard("kat");zoneCard("prizemlje");}
+    private void systemCards(){JSONObject b=status.optJSONObject("buffer"),s=status.optJSONObject("sanitary"),f=status.optJSONObject("boiler");LinearLayout c=card();add(c,text("Pufer · spremnik topline",17,INK,true));metric(c,"Vrh",temp(val(b,"top")));metric(c,"Sredina",temp(val(b,"middle")));metric(c,"Dno",temp(val(b,"bottom")));gap(c,14);add(c,button("Grafikon pufera",false,()->openChart("buffer")));c=card();add(c,text("Sanitarna voda",17,INK,true));gap(c,10);add(c,text(temp(val(s,"temperature")),32,INK,true));metric(c,"Pumpa",running(s,"pumpRunning"));gap(c,14);add(c,button("Grafikon sanitarne vode",false,()->openChart("sanitary")));c=card();add(c,text("Peć",17,INK,true));gap(c,10);add(c,text(temp(val(f,"temperature")),32,INK,true));metric(c,"Pumpa",running(f,"pumpRunning"));metric(c,"Ventilator",running(f,"fanRunning"));gap(c,14);add(c,button("Grafikon peći",false,()->openChart("boiler")));}
+    private void diagnostics(){section("Veza i vrijeme sustava");LinearLayout c=card();JSONObject s=status==null?null:status.optJSONObject("sync");metric(c,"Vrijeme izvora",status.optString("serverTime","—"));metric(c,"Vrijeme sustava",status.optString("systemTime","—"));metric(c,"Kat",s==null?"—":s.optString("kat","—"));metric(c,"Prizemlje",s==null?"—":s.optString("prizemlje","—"));metric(c,"Broj resetiranja",num(val(status,"resets"),0));gap(c,14);add(c,button("Veza sa sustavom",false,this::connectionDialog));}
+    private void openChart(String id){chartId=id;hidden.clear();navigate("charts");}
+    private double[] sourceValues(JSONObject s){JSONArray f=s.optJSONArray("fields");double[] a=new double[24];for(int h=0;h<24;h++)a[h]=val(f.optJSONObject(h),"value");return a;}
+    private int changes(String id){JSONObject s=schedules.get(id);double[] d=drafts.get(id);if(s==null||d==null)return 0;double[] old=sourceValues(s);int count=0;for(int h=0;h<24;h++)if(!equal(old[h],d[h]))count++;return count;}
+    private boolean settingsDirty(){if(settings==null||settingsDraft==null)return false;JSONArray f=settings.optJSONArray("fields");for(int i=0;i<6;i++)if(!equal(val(f.optJSONObject(i),"value"),val(settingsDraft,"n"+i)))return true;return false;}
+    private boolean dirty(){return changes("kat")>0||changes("prizemlje")>0||settingsDirty();}
+    private Spinner spinner(String[] items){Spinner s=new Spinner(this);ArrayAdapter<String> adapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,items);adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);s.setAdapter(adapter);s.setMinimumHeight(dp(48));s.setBackgroundTintList(ColorStateList.valueOf(SAGE));return s;}
+    private SeekBar slider(double min,double max,double step,double initial,Consumer<Double> changed){SeekBar s=new SeekBar(this);s.setPadding(dp(3),0,dp(3),0);s.setMinimumHeight(dp(48));s.setProgressTintList(ColorStateList.valueOf(SAGE));s.setThumbTintList(ColorStateList.valueOf(SAGE));s.setProgressBackgroundTintList(ColorStateList.valueOf(0xffe4e9db));s.setMax(Math.max(1,(int)Math.round((max-min)/step)));s.setProgress(Math.max(0,Math.min(s.getMax(),(int)Math.round((initial-min)/step))));s.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar bar,int p,boolean user){if(user)changed.accept(sliderValue(bar,min,step));}public void onStartTrackingTouch(SeekBar b){}public void onStopTrackingTouch(SeekBar b){}});return s;}
+    private double sliderValue(SeekBar s,double min,double step){return Math.round((min+s.getProgress()*step)*100000)/100000.0;}
+    private LinearLayout spinnerField(String label,Spinner s){LinearLayout l=column();l.addView(text(label,9,MUTED,false));gap(l,6);l.addView(s,new LinearLayout.LayoutParams(-1,dp(48)));return l;}
+    private void schedule(){title("Toplina po vašem ritmu","Rasporedi","Svaki sat ima svoju temperaturu. Slanje promjena traži potvrdu.");LinearLayout zones=row();for(String id:new String[]{"kat","prizemlje"}){LinearLayout.LayoutParams lp=weight();lp.rightMargin=dp(6);zones.addView(button(id.equals("kat")?"Kat":"Prizemlje",id.equals(zone),()->{zone=id;render(false);if(!schedules.containsKey(id))loadSchedule(id);}),lp);}add(content,zones);gap(content,18);JSONObject s=schedules.get(zone);if(s==null){if(loadingSchedules.contains(zone))loading("Dohvaćam 24 satne temperature…");else unavailable("Raspored nije dostupan","Provjerite vezu i osvježite podatke.",()->loadSchedule(zone));return;}if(!drafts.containsKey(zone))drafts.put(zone,sourceValues(s));double[] draft=drafts.get(zone);JSONArray fields=s.optJSONArray("fields");
+        LinearLayout graph=card();add(graph,text("Vaš dnevni plan",17,INK,true));gap(graph,7);schedulePlot=new NativeChartView(this);graph.addView(schedulePlot,new LinearLayout.LayoutParams(-1,dp(180)));add(graph,text("Zeleno: pripremljeno · Sivo: spremljeno u sustavu",10,MUTED,false));scheduleGraph();
+        LinearLayout bulk=card();add(bulk,text("Ista temperatura za više sati",15,INK,true));gap(bulk,13);String[] hours=new String[24];for(int h=0;h<24;h++)hours[h]=String.format(Locale.ROOT,"%02d:00",h);Spinner from=spinner(hours),to=spinner(hours);to.setSelection(23);LinearLayout range=row();range.addView(spinnerField("OD SATA",from),weight());LinearLayout.LayoutParams lp=weight();lp.leftMargin=dp(10);range.addView(spinnerField("DO SATA, UKLJUČIVO",to),lp);add(bulk,range);gap(bulk,12);JSONObject first=fields.optJSONObject(0);double min=val(first,"min"),max=val(first,"max"),step=val(first,"step");TextView bulkValue=text(temp(draft[0]),25,INK,true);add(bulk,bulkValue);SeekBar bulkSlider=slider(min,max,step,draft[0],v->bulkValue.setText(temp(v)));bulkSlider.setContentDescription("Temperatura za odabrane sate");bulk.addView(bulkSlider,new LinearLayout.LayoutParams(-1,dp(48)));gap(bulk,12);add(bulk,button("Primijeni na sate",false,()->{int begin=from.getSelectedItemPosition(),end=to.getSelectedItemPosition();double v=sliderValue(bulkSlider,min,step);for(int h=0;h<24;h++)if(begin<=end?h>=begin&&h<=end:h>=begin||h<=end){JSONObject f=fields.optJSONObject(h);double n=(v-val(f,"min"))/val(f,"step");if(v<val(f,"min")||v>val(f,"max")||Math.abs(n-Math.round(n))>.00001){toast("Temperatura ne odgovara granicama svih odabranih sati.");return;}}for(int h=0;h<24;h++)if(begin<=end?h>=begin&&h<=end:h>=begin||h<=end)drafts.get(zone)[h]=v;render(true);}));
+        note=text(changes(zone)==0?"Raspored odgovara zapisu u sustavu.":"Promijenjeno sati: "+changes(zone),12,MUTED,false);add(content,note);gap(content,14);
+        for(int h=0;h<24;h+=2){LinearLayout cells=row();cells.setGravity(Gravity.TOP);for(int i=h;i<h+2;i++){final int index=i;JSONObject field=fields.optJSONObject(i);double lo=val(field,"min"),hi=val(field,"max"),inc=val(field,"step");LinearLayout cell=column();cell.setPadding(dp(13),dp(15),dp(13),dp(14));cell.setBackground(bg(WHITE,20));cell.addView(text(String.format(Locale.ROOT,"%02d:00",i),11,MUTED,false));gap(cell,8);TextView current=text(temp(draft[i]),24,INK,true);cell.addView(current);SeekBar bar=slider(lo,hi,inc,draft[i],v->{drafts.get(zone)[index]=v;current.setText(temp(v));if(note!=null)note.setText("Promijenjeno sati: "+changes(zone));scheduleGraph();saveState();});bar.setContentDescription(String.format(Locale.ROOT,"Temperatura %02d:00",i));cell.addView(bar,new LinearLayout.LayoutParams(-1,dp(48)));gap(cell,3);cell.addView(text("U sustavu: "+temp(val(field,"value")),10,MUTED,false));JSONArray refs=s.optJSONArray("defaults");if(refs!=null&&!refs.isNull(i))cell.addView(text("Izvorna ref.: "+num(refs.optDouble(i,Double.NaN),0)+"°",9,0xffbc8050,false));cell.addView(text(num(lo,1)+" – "+num(hi,1)+" °C",9,MUTED,false));LinearLayout.LayoutParams cellLp=weight();if(i%2==0)cellLp.rightMargin=dp(7);else cellLp.leftMargin=dp(7);cells.addView(cell,cellLp);}add(content,cells);gap(content,14);}}
+    private void scheduleGraph(){if(schedulePlot==null||!schedules.containsKey(zone)||!drafts.containsKey(zone))return;try{JSONArray labels=new JSONArray(),current=new JSONArray(),stored=new JSONArray();JSONArray fields=schedules.get(zone).getJSONArray("fields");for(int h=0;h<24;h++){labels.put(String.format(Locale.ROOT,"%02d:00",h));current.put(drafts.get(zone)[h]);stored.put(val(fields.optJSONObject(h),"value"));}JSONArray sets=new JSONArray().put(new JSONObject().put("label","Pripremljeno").put("data",current).put("color","#96ad71").put("stepped",true)).put(new JSONObject().put("label","U sustavu").put("data",stored).put("color","#c6cdbb").put("stepped",true));schedulePlot.setChart(new JSONObject().put("labels",labels).put("datasets",sets).put("unit","°C"));}catch(Exception ignored){}}
+    private void actionBar(){actions.removeAllViews();save=null;if(page.equals("schedule")&&schedules.containsKey(zone)){LinearLayout r=row();r.addView(button("Poništi",false,()->{drafts.put(zone,sourceValues(schedules.get(zone)));render(true);}),new LinearLayout.LayoutParams(dp(88),dp(50)));save=button("Spremi raspored",true,this::confirmSchedule);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(50),1);lp.leftMargin=dp(9);r.addView(save,lp);add(actions,r);}else if(page.equals("settings")&&settings!=null){LinearLayout r=row();r.addView(button("Poništi",false,()->{settingsDraft=settingValues(settings);render(true);}),new LinearLayout.LayoutParams(dp(88),dp(50)));save=button("Spremi postavke",true,this::confirmSettings);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(50),1);lp.leftMargin=dp(9);r.addView(save,lp);add(actions,r);}actions.setVisibility(save==null?View.GONE:View.VISIBLE);saveState();}
+    private String settingNumber(double value){return Double.isFinite(value)?java.math.BigDecimal.valueOf(value).stripTrailingZeros().toPlainString():"";}
+    private String settingDisplay(double value){return settingNumber(value).replace('.',',')+" °C";}
+    private void setSaving(boolean busy){saving=busy;lockEditors(content,!busy);header();}
+    private void lockEditors(View view,boolean enabled){if(view==null)return;if(view instanceof SeekBar||view instanceof EditText||view instanceof CompoundButton)view.setEnabled(enabled);if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++)lockEditors(group.getChildAt(i),enabled);}}
+    private void saveState(){if(save==null)return;boolean changed=page.equals("schedule")?changes(zone)>0:settingsDirty();save.setEnabled(online&&!saving&&changed);save.setAlpha(save.isEnabled()?1:.45f);save.setText(saving?"Spremanje…":page.equals("schedule")?"Spremi raspored"+(changes(zone)>0?" ("+changes(zone)+")":""):"Spremi postavke");}
+    private void confirmSchedule(){if(changes(zone)==0||saving)return;double[] old=sourceValues(schedules.get(zone)),next=drafts.get(zone).clone();StringBuilder message=new StringBuilder("Promjene za "+(zone.equals("kat")?"kat":"prizemlje")+" šalju se vašem sustavu grijanja.\n\n");for(int h=0;h<24;h++)if(!equal(old[h],next[h]))message.append(String.format(Locale.ROOT,"%02d:00",h)).append("   ").append(temp(old[h])).append(" → ").append(temp(next[h])).append('\n');String id=zone;confirm("Spremiti raspored?",message.toString(),"Pošalji raspored",()->{setSaving(true);saveState();task(()->repository.saveSchedule(id,next),data->{setSaving(false);schedules.put(id,data);drafts.put(id,sourceValues(data));render(true);toast("Raspored je spremljen i potvrđen u izvornom web-sučelju.");loadStatus(false);},e->{setSaving(false);saveState();toast(e.getMessage());});});}
+    private JSONObject settingValues(JSONObject source){JSONObject out=new JSONObject();try{JSONArray f=source.getJSONArray("fields");for(int i=0;i<f.length();i++){JSONObject x=f.getJSONObject(i);out.put(x.getString("name"),x.get("value"));}}catch(Exception ignored){}return out;}
+    private void settings(){title("Ugodno, po vašoj mjeri","Postavke sustava","Sve izvorne temperature i upravljanje klimatizacijom.");if(settings==null){if(settingsLoading)loading("Dohvaćam postavke…");else unavailable("Postavke nisu dostupne","Provjerite vezu s izvornim sustavom.",this::loadSettings);return;}if(settingsDraft==null)settingsDraft=settingValues(settings);for(int n=0;n<6;n++){String name="n"+n;LinearLayout c=card();add(c,text(SETTING_NAMES[n],16,INK,true));gap(c,6);String label=settings.optJSONArray("fields").optJSONObject(n).optString("label",name);if(!label.equals(name))add(c,text(label,11,MUTED,false));gap(c,12);if(n==5){Switch toggle=new Switch(this);toggle.setText(val(settingsDraft,name)==1?"Uključeno":"Isključeno");toggle.setChecked(val(settingsDraft,name)==1);toggle.setTextColor(INK);toggle.setTextSize(15);toggle.setMinHeight(dp(48));toggle.setThumbTintList(ColorStateList.valueOf(SAGE));toggle.setTrackTintList(ColorStateList.valueOf(0xffcdd9c0));toggle.setOnCheckedChangeListener((b,checked)->{try{settingsDraft.put(name,checked?1:0);}catch(Exception ignore){}toggle.setText(checked?"Uključeno":"Isključeno");saveState();});add(c,toggle);}else{LinearLayout input=row();EditText edit=new EditText(this);edit.setText(settingNumber(val(settingsDraft,name)));edit.setTextSize(28);edit.setTextColor(INK);edit.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL|InputType.TYPE_NUMBER_FLAG_SIGNED);edit.setSingleLine(true);edit.setSelectAllOnFocus(true);edit.setFilters(new InputFilter[]{new InputFilter.LengthFilter(16)});edit.setContentDescription(SETTING_NAMES[n]+" temperatura");edit.setBackgroundTintList(ColorStateList.valueOf(SAGE));input.addView(edit,weight());input.addView(text("°C",17,MUTED,false));add(c,input);edit.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int count,int after){}public void onTextChanged(CharSequence s,int a,int before,int count){try{double v=Double.parseDouble(s.toString().replace(',','.'));settingsDraft.put(name,Double.isFinite(v)?v:JSONObject.NULL);}catch(Exception e){try{settingsDraft.put(name,JSONObject.NULL);}catch(Exception ignore){}}saveState();}public void afterTextChanged(Editable e){}});}}LinearLayout c=card();add(c,text("Primjena postavki",15,INK,true));gap(c,8);add(c,text("Unos priprema promjene. Gumb Spremi postavke prikazuje sažetak prije slanja stvarnom sustavu.",12,MUTED,false));gap(c,14);add(c,button("Veza sa sustavom",false,this::connectionDialog));}
+    private void confirmSettings(){if(settingsDraft==null||saving)return;for(int n=0;n<6;n++)if(!Double.isFinite(val(settingsDraft,"n"+n))){toast("Unesite ispravnu vrijednost za "+SETTING_NAMES[n]+".");return;}if(!settingsDirty())return;StringBuilder message=new StringBuilder("Ove postavke šalju se vašem sustavu grijanja.\n\n");for(int i=0;i<6;i++){double old=val(settings.optJSONArray("fields").optJSONObject(i),"value"),next=val(settingsDraft,"n"+i);if(!equal(old,next))message.append(SETTING_NAMES[i]).append(": ").append(i==5?(old==1?"Uključeno":"Isključeno"):settingDisplay(old)).append(" → ").append(i==5?(next==1?"Uključeno":"Isključeno"):settingDisplay(next)).append('\n');}final JSONObject values;try{values=new JSONObject(settingsDraft.toString());}catch(Exception e){return;}confirm("Spremiti postavke?",message.toString(),"Pošalji postavke",()->{setSaving(true);saveState();task(()->repository.saveSettings(values),data->{setSaving(false);settings=data;settingsDraft=settingValues(data);render(true);toast("Postavke su spremljene i potvrđene u izvornom web-sučelju.");loadStatus(false);},e->{setSaving(false);saveState();toast(e.getMessage());});});}
+    private void charts(){title("Vaš sustav kroz vrijeme","Grafikoni","Sva izvorna očitanja u mobilnim grafikonima.");HorizontalScrollView strip=new HorizontalScrollView(this);strip.setHorizontalScrollBarEnabled(false);LinearLayout chips=row();JSONArray catalog=ChartParser.catalog();for(int i=0;i<catalog.length();i++){JSONObject c=catalog.optJSONObject(i);String id=c.optString("id");Button b=button(c.optString("title"),id.equals(chartId),()->{chartId=id;hidden.clear();render(false);if(!charts.containsKey(id))loadChart(id);});LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,dp(48));lp.rightMargin=dp(7);chips.addView(b,lp);}strip.addView(chips);add(content,strip);gap(content,16);JSONObject raw=charts.get(chartId);if(raw==null){if(loadingCharts.contains(chartId))loading("Dohvaćam izvorni grafikon…");else unavailable("Grafikon nije dostupan","Izvor trenutačno ne vraća podatke za ovaj prikaz.",()->loadChart(chartId));return;}
+        LinearLayout c=card();add(c,text(raw.optString("title","Očitanja"),19,INK,true));gap(c,7);LinearLayout controls=row();controls.addView(text("Razdoblje",12,MUTED,false),weight());int[] options={1,6,12,24};Spinner periods=spinner(new String[]{"1 sat","6 sati","12 sati","24 sata"});int selected=3;for(int n=0;n<4;n++)if(options[n]==period)selected=n;periods.setSelection(selected);controls.addView(periods,new LinearLayout.LayoutParams(dp(116),dp(48)));add(c,controls);
+        NativeChartView plot=new NativeChartView(this);plot.setChart(raw);plot.setPeriodHours(period);plot.setHiddenSeries(hidden);c.addView(plot,new LinearLayout.LayoutParams(-1,dp(275)));gap(c,7);add(c,text("Dodirnite grafikon za očitanje pojedine točke.",10,MUTED,false));gap(c,10);JSONArray sets=raw.optJSONArray("datasets");for(int i=0;i<sets.length();i++){final int index=i;JSONObject ds=sets.optJSONObject(i);Button legend=button((hidden.contains(i)?"○ ":"● ")+seriesName(ds.optString("label")),false,()->{if(hidden.contains(index))hidden.remove(index);else hidden.add(index);render(true);});legend.setTextColor(hidden.contains(i)?MUTED:NativeChartView.colorFor(ds,i));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(46));lp.bottomMargin=dp(5);c.addView(legend,lp);}periods.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onNothingSelected(AdapterView<?> p){}public void onItemSelected(AdapterView<?> p,View v,int position,long id){if(period!=options[position]){period=options[position];render(true);}}});
+        chartStats(raw);if(chartId.equals("voltage"))banner("Izvorna alarmna granica je 251 V. Legenda izvornika navodi 250 V. Promjene napona veće od 10 V označene su na grafikonu.");else if(chartId.equals("kat")||chartId.equals("prizemlje"))add(content,text("Serija pumpe zadržava izvornu brojčanu skalu. Nije dodatno mjerenje sobne temperature.",11,MUTED,false));gap(content,14);add(content,button("Izvezi sve podatke (CSV)",false,this::exportCsv));gap(content,10);add(content,button("Ponovno dohvati grafikon",false,()->loadChart(chartId)));gap(content,8);add(content,text("Preuzeto "+time(raw.optString("fetchedAt"))+" · podaci iz izvornog sustava.",10,MUTED,false));}
+    private String seriesName(String s){switch(s){case "t_kt":return "Kat · očitano";case "t_kt_z":return "Kat · zadano";case "radi_pumpa_kat":return "Pumpa kata";case "t_pr":return "Prizemlje · očitano";case "t_pr_z":return "Prizemlje · zadano";case "radi_pumpa_priz":return "Pumpa prizemlja";case "danas":return "Peć · danas";case "jucer":return "Peć · jučer";case "pumpa":return "Pumpa";case "temperatura":return "Temperatura";case "vanjska_temperatura":return "Vanjska temperatura";default:return s;}}
+    private int periodStart(JSONArray labels){int length=labels.length();if(period>=24||length==0)return 0;int start=Math.max(0,length-(int)Math.ceil(length*period/24.0));SimpleDateFormat f=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",Locale.ROOT);f.setLenient(false);try{long threshold=f.parse(labels.getString(length-1).replace('T',' ')).getTime()-period*3600000L;for(int i=0;i<length;i++)if(f.parse(labels.getString(i).replace('T',' ')).getTime()>=threshold)return i;}catch(Exception ignored){}return start;}
+    private void chartStats(JSONObject chart){JSONArray sets=chart.optJSONArray("datasets"),labels=chart.optJSONArray("labels");if(sets==null||labels==null)return;int start=periodStart(labels);for(int i=0;i<sets.length();i++){if(hidden.contains(i))continue;JSONObject ds=sets.optJSONObject(i);JSONArray data=ds.optJSONArray("data");double min=Double.POSITIVE_INFINITY,max=Double.NEGATIVE_INFINITY,last=Double.NaN;for(int n=start;n<data.length();n++){double v=data.optDouble(n,Double.NaN);if(!Double.isFinite(v))continue;min=Math.min(min,v);max=Math.max(max,v);last=v;}if(!Double.isFinite(last))continue;LinearLayout c=card();add(c,text(seriesName(ds.optString("label"))+" · "+period+" h",13,INK,true));String unit=chartId.equals("voltage")?" V":" °C";metric(c,"Najniže",num(min,1)+unit);metric(c,"Najviše",num(max,1)+unit);metric(c,"Posljednje",num(last,1)+unit);break;}}
+    private String csv(Object v){return "\""+((v==null||v==JSONObject.NULL)?"":v.toString()).replace("\"","\"\"")+"\"";}
+    private void exportCsv(){JSONObject chart=charts.get(chartId);if(chart==null)return;try{JSONArray labels=chart.getJSONArray("labels"),sets=chart.getJSONArray("datasets");StringBuilder out=new StringBuilder("\ufeff\"Vrijeme\"");for(int i=0;i<sets.length();i++)out.append(';').append(csv(sets.getJSONObject(i).optString("label")));for(int n=0;n<labels.length();n++){out.append("\r\n").append(csv(labels.opt(n)));for(int i=0;i<sets.length();i++)out.append(';').append(csv(sets.getJSONObject(i).getJSONArray("data").opt(n)));}pendingCsv=out.toString();startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("text/csv").putExtra(Intent.EXTRA_TITLE,"TermoDom-"+chartId+".csv"),1704);}catch(Exception e){pendingCsv=null;toast("Nije moguće otvoriti spremanje CSV datoteke.");}}
+    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request!=1704)return;String body=pendingCsv;pendingCsv=null;if(result!=RESULT_OK||data==null||data.getData()==null||body==null)return;Uri uri=data.getData();if(!"content".equals(uri.getScheme())){toast("Odabrana datoteka nije dostupna.");return;}task(()->{try(OutputStream out=getContentResolver().openOutputStream(uri,"wt")){if(out==null)throw new Exception("Nema odredišne datoteke.");out.write(body.getBytes(StandardCharsets.UTF_8));}return true;},ok->toast("CSV datoteka je spremljena."),e->toast("CSV datoteka nije spremljena."));}
+    private void connectionDialog(){LinearLayout body=column();body.setPadding(dp(22),dp(8),dp(22),dp(15));add(body,text("automatiziraj.se",18,INK,true));metric(body,"Veza",online?"Povezano":"Nedostupno");if(status!=null){metric(body,"Preuzimanje",time(status.optString("fetchedAt")));metric(body,"Vrijeme izvora",status.optString("serverTime","—"));metric(body,"Vrijeme sustava",status.optString("systemTime","—"));JSONObject sync=status.optJSONObject("sync");metric(body,"SYNC kat",sync==null?"—":sync.optString("kat","—"));metric(body,"SYNC prizemlje",sync==null?"—":sync.optString("prizemlje","—"));metric(body,"Resetiranja",num(val(status,"resets"),0));}gap(body,16);add(body,text("Aplikacija upravlja izvornim sustavom preko HTTPS veze. Potvrda zapisa na izvoru ne potvrđuje zasebno stanje regulatora.",12,MUTED,false));gap(body,16);add(body,button("Otvori izvornu stranicu",false,()->{try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(HeatingRepository.SOURCE)));}catch(Exception e){toast("Nije pronađen preglednik.");}}));gap(body,9);add(body,button("Odjava s izvora",false,()->confirm("Odjava s izvora","Sesija izvornika zatvorit će se. Nespremljene lokalne promjene bit će odbačene.","Odjavi se",()->{setSaving(true);task(()->{repository.logout();return true;},ok->{setSaving(false);status=null;settings=null;settingsDraft=null;schedules.clear();drafts.clear();charts.clear();online=false;errorText="Odjavljeni ste s izvornog sustava.";render(false);toast("Sesija je odjavljena.");},e->{setSaving(false);toast(e.getMessage());});})));ScrollView box=new ScrollView(this);box.addView(body);dialog=new AlertDialog.Builder(this).setTitle("Veza sa sustavom").setView(box).setPositiveButton("Zatvori",null).create();dialog.show();}
+    private void confirm(String title,String message,String action,Runnable submit){if(dialog!=null&&dialog.isShowing())dialog.dismiss();TextView copy=text(message,14,INK,false);copy.setPadding(dp(24),dp(8),dp(24),dp(15));ScrollView box=new ScrollView(this);box.addView(copy);dialog=new AlertDialog.Builder(this).setTitle(title).setView(box).setNegativeButton("Natrag",null).setPositiveButton(action,(d,w)->{if(online)submit.run();else toast("Najprije osvježite vezu sa sustavom.");}).create();dialog.show();}
+    private void header(){if(connection==null)return;connection.setText(statusLoading&&status==null?"● Povezivanje sa sustavom…":online?"● Izvor povezan · dodirnite za pojedinosti":status==null?"● Nema veze · dodirnite za pojedinosti":"● Veza prekinuta · posljednja očitanja");connection.setTextColor(online?0xffd9edbd:0xffefcfad);progress.setVisibility(activeRequests>0?View.VISIBLE:View.INVISIBLE);refresh.setEnabled(!saving);saveState();}
+    private <T> void task(Callable<T> work,Consumer<T> success,Consumer<Exception> failure){if(destroyed)return;activeRequests++;header();executor.execute(()->{T result=null;Exception error=null;try{result=work.call();}catch(Exception e){error=e;}T data=result;Exception problem=error;ui.post(()->{if(destroyed)return;activeRequests--;if(problem==null)success.accept(data);else failure.accept(problem);header();});});}
+    private void loadStatus(boolean manual){if(statusLoading||saving)return;statusLoading=true;task(repository::status,data->{statusLoading=false;status=data;online=true;errorText="";lastRead=System.currentTimeMillis();if(page.equals("overview")||page.equals("zones"))render(true);if(manual)toast("Očitanja su osvježena.");},e->{statusLoading=false;online=false;errorText=e.getMessage()==null?"Provjerite internetsku vezu.":e.getMessage();if(page.equals("overview")||page.equals("zones"))render(true);if(manual)toast(errorText);});}
+    private void loadSchedule(String id){if(loadingSchedules.contains(id)||saving)return;loadingSchedules.add(id);if(page.equals("schedule")&&zone.equals(id)&&!schedules.containsKey(id))render(true);task(()->repository.schedule(id),data->{loadingSchedules.remove(id);boolean hadChanges=changes(id)>0;schedules.put(id,data);if(!hadChanges||!drafts.containsKey(id))drafts.put(id,sourceValues(data));if(page.equals("schedule")&&zone.equals(id)||page.equals("overview")||page.equals("zones"))render(true);},e->{loadingSchedules.remove(id);if(page.equals("schedule")&&zone.equals(id)){render(true);toast(e.getMessage());}});}
+    private void loadSettings(){if(settingsLoading||saving)return;settingsLoading=true;if(page.equals("settings")&&settings==null)render(true);task(repository::settings,data->{settingsLoading=false;boolean hadChanges=settingsDirty();settings=data;if(!hadChanges||settingsDraft==null)settingsDraft=settingValues(data);if(page.equals("settings"))render(true);},e->{settingsLoading=false;if(page.equals("settings")){render(true);toast(e.getMessage());}});}
+    private void loadChart(String id){if(loadingCharts.contains(id)||saving)return;loadingCharts.add(id);if(page.equals("charts")&&chartId.equals(id)&&!charts.containsKey(id))render(true);task(()->repository.chart(id),data->{loadingCharts.remove(id);charts.put(id,data);if(page.equals("charts")&&chartId.equals(id))render(true);},e->{loadingCharts.remove(id);if(page.equals("charts")&&chartId.equals(id)){render(true);toast(e.getMessage());}});}
+    private void refreshAll(boolean manual){loadStatus(manual);if(page.equals("schedule"))loadSchedule(zone);if(page.equals("settings"))loadSettings();if(page.equals("charts"))loadChart(chartId);}
+    private void toast(String message){if(!destroyed)Toast.makeText(this,message==null?"Zahtjev nije uspio.":message,Toast.LENGTH_LONG).show();}
+    private void back(){if(saving){toast("Pričekajte potvrdu spremanja.");return;}if(dialog!=null&&dialog.isShowing()){dialog.dismiss();return;}if(!page.equals("overview")){navigate("overview");return;}if(dirty()){dialog=new AlertDialog.Builder(this).setTitle("Zatvoriti aplikaciju?").setMessage("Nespremljene promjene bit će odbačene. Grijanje nastavlja raditi prema spremljenim postavkama.").setNegativeButton("Natrag",null).setPositiveButton("Zatvori",(d,w)->finish()).create();dialog.show();}else finish();}
+    @Override public void onBackPressed(){back();}
+    @Override protected void onPause(){resumed=false;ui.removeCallbacks(poll);super.onPause();}
+    @Override protected void onResume(){super.onResume();resumed=true;if(repository!=null&&System.currentTimeMillis()-lastRead>20000)loadStatus(false);ui.removeCallbacks(poll);ui.postDelayed(poll,90000);}
+    @Override public void onConfigurationChanged(Configuration config){super.onConfigurationChanged(config);render(true);}
+    @Override protected void onDestroy(){destroyed=true;ui.removeCallbacksAndMessages(null);executor.shutdownNow();if(Build.VERSION.SDK_INT>=33&&backCallback!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);super.onDestroy();}
+    @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putString("page",page);out.putString("zone",zone);out.putString("chart",chartId);out.putInt("period",period);if(status!=null)out.putString("status",status.toString());if(settings!=null)out.putString("settings",settings.toString());if(settingsDraft!=null)out.putString("settingsDraft",settingsDraft.toString());for(String id:new String[]{"kat","prizemlje"}){if(schedules.containsKey(id))out.putString(id,schedules.get(id).toString());if(drafts.containsKey(id))out.putDoubleArray(id+"Draft",drafts.get(id));}out.putString("pendingCsv",pendingCsv);}
+    private void restore(Bundle saved){try{page=saved.getString("page","overview");if(!Arrays.asList(IDS).contains(page))page="overview";zone=saved.getString("zone","kat");chartId=saved.getString("chart","kat");period=saved.getInt("period",24);if(saved.containsKey("status"))status=new JSONObject(saved.getString("status"));if(saved.containsKey("settings"))settings=new JSONObject(saved.getString("settings"));if(saved.containsKey("settingsDraft"))settingsDraft=new JSONObject(saved.getString("settingsDraft"));for(String id:new String[]{"kat","prizemlje"}){if(saved.containsKey(id))schedules.put(id,new JSONObject(saved.getString(id)));if(saved.containsKey(id+"Draft"))drafts.put(id,saved.getDoubleArray(id+"Draft"));}pendingCsv=saved.getString("pendingCsv");}catch(Exception ignored){}}
+    @SuppressWarnings("deprecation") private void insets(FrameLayout root){getWindow().setStatusBarColor(Color.TRANSPARENT);getWindow().setNavigationBarColor(Color.TRANSPARENT);if(Build.VERSION.SDK_INT>=30){getWindow().setDecorFitsSystemWindows(false);root.setOnApplyWindowInsetsListener((v,insets)->{Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()),keyboard=insets.getInsets(WindowInsets.Type.ime());v.setPadding(bars.left,bars.top,bars.right,Math.max(bars.bottom,keyboard.bottom));android.view.WindowInsetsController c=v.getWindowInsetsController();if(c!=null)c.setSystemBarsAppearance(android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS|android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);return WindowInsets.CONSUMED;});}else{getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);root.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets.consumeSystemWindowInsets();});}}
 }

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+<meta http-equiv="refresh" content="90">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" >
+<link rel="stylesheet" type="text/css" href="../css/izgled.css">
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+.row::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+[class*="col-"] {
+  float: left;
+  padding: 5px;
+}
+
+html {
+  font-family: "Lucida Sans", sans-serif;
+}
+
+.header {
+    width: 100%;
+    height: 35px;
+  background-color: #9933cc;
+  color: #ffffff;
+  float: left;
+  font-size:15px;
+  padding: 0px;
+  display: block;
+ 
+}
+
+.out {
+  width: 10%;
+  height: 25px;    
+  background-color: #9933cc;
+  color: #ffffff;
+  padding: 5px;
+  display: block;
+  float: right;
+ 
+}
+
+
+.menu ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.vent {
+  position: relative;
+  left: 95px;
+  top: -95px;
+  z-index: -1;
+}
+
+.tekst-puffer {
+  position: relative;
+  left: -80px;
+  top: -2px;
+  z-index: 1;
+}
+.tekst-pec {
+  position: relative;
+  left: -60px;
+  top: -2px;
+  z-index: 1;
+}
+
+.menu li {
+  padding: 8px;
+  margin-bottom: 7px;
+  background-color: #ccc;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+}
+
+.menu li:hover {
+  background-color: #aaa;
+}
+
+.aside {
+  background-color: #33b5e5;
+  padding: 15px;
+  color: #ffffff;
+  text-align: center;
+  font-size: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+}
+
+.footer {
+  background-color: #0099cc;
+  color: #ffffff;
+  text-align: center;
+  font-size: 12px;
+  padding: 15px;
+}
+
+/* For mobile phones: */
+ 
+  
+  .col-m-1 {width: 8.33%;}
+  .col-m-2 {width: 16.66%;}
+  .col-m-3 {width: 25%;}
+  .col-m-4 {width: 33.33%;}
+  .col-m-5 {width: 41.66%;}
+  .col-m-6 {width: 50%;}
+  .col-m-7 {width: 58.33%; display: none;}
+  .col-m-8 {width: 66.66%;}
+  .col-m-9 {width: 75%;}
+  .col-m-10 {width: 83.33%;}
+  .col-m-11 {width: 91.66%;}
+  .col-m-12 {width: 100%;}
+ 
+  
+
+
+@media screen and (min-width: 768px) {
+  /* For desktop: */
+  .col-1 {width: 8.33%;}
+  .col-2 {width: 16.66%;}
+  .col-3 {width: 25%;}
+  .col-4 {width: 33.33%;display: block;}
+  .col-5 {width: 41.66%;}
+  .col-6 {width: 50%;}
+  .col-7 {width: 58.33%;}
+  .col-8 {width: 66.66%;}
+  .col-9 {width: 75%;}
+  .col-10 {width: 83.33%;}
+  .col-11 {width: 91.66%;}
+  .col-12 {width: 100%;}
+  
+  .tekst-puffer {
+  position: relative;
+  left: -145px;
+  top: -2px;
+  z-index: 1;
+}
+
+ .pump_pec {
+  position: relative;
+  left: 30px;
+  top: 200px;
+  z-index: 1;
+}
+
+.tekst-pec {
+  position: relative;
+  left: -140px;
+  top: -2px;
+  z-index: 1;
+}
+a:link {
+  text-decoration: none;
+  color: #ffffff;
+}
+
+a:visited {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: none;
+  color: #ffffcc;
+}
+
+a:active {
+  text-decoration: none;
+}
+</style>
+</head>
+<body>
+    
+    
+
+
+
+
+<div class="header">
+    <p >Sustav grijanja</p>
+</div>
+ 
+<div class="out"> 
+  
+    <form  action="../scr/logout.scr.php">
+    <button  type="submit">Logout</button>
+  </form>
+</div>
+
+
+
+<div class="row">
+  <div class="col-2 menu col-m-12">
+    <ul>
+      <a href="kat.php"><li>Kat</li></a>
+      <a href="prizemlje.php"><li>Prizemlje</li></a>
+      <a href="podesavanje.php"><li>Postavke</li></a>
+      <p>2026-10-22 19:22:23</p> 
+      <p>vrijeme sistema 19:20</p>
+      <p>SYNC prizemlje</p>
+             
+      <p>SYNC kat</p>     
+     
+    </ul>
+  </div>
+
+<div class="col-3 col-m-6">
+  <div >
+    <div ><a href="graf_kat_temp.php"><img src="../slike/radijator.png" width="200" height="150"></a></div>
+  
+    <div >
+        
+    <span style="color: green; font-size: 20px;"> 26.00°C</span></div>
+    
+    <div ><a href="graf_prizemlje_temp.php"><img src="../slike/radijator.png" width="200" height="150"></a></div>
+ 
+    <div >
+    
+    <span style="color: green; font-size: 20px;"> 23.27°C</span>    </div>
+    
+    
+  </div>
+</div>  
+    
+<div class="col-3 col-m-6">
+   <div>
+   
+     <div ><img src="../slike/pumpa.png" width="50" height="70">Trenutno je 37.00°C</div>
+     <div><img src="../slike/no.png" width="50" height="50">     </div>  <span id="ztk">  Planirano je 33 </span>
+     
+     
+     <div ><img src="../slike/pumpa.png" width="50" height="70"> Trenutno je 36.00°C</div>
+    <div ><img src="../slike/ok.png"  width="50" height="50">    </div>
+      <span id="ztp">  Planirano je 33 </span>
+  </div>    
+</div> 
+
+  <div class="col-4 col-m-7">
+    <div class="aside">
+      <h2>Vanjska temperatura 11.50 </h2>
+      
+      <p>Posto 6.00%</p>
+      
+     
+    </div>
+  </div>
+</div>
+
+<div class="row">
+ <div class="col-2 col-m-12"></div>
+ <div class="col-2 col-m-6">
+    <div ><a href="graf_puffer_temp.php"><img src="../slike/puffer.png" width="270" height="320"></a></div>      
+ </div>
+ 
+<div class="col-2 col-m-6 tekst-puffer"> 
+  
+    <p>vrh</p>
+    <h2>37.00°</h2>
+    <p>sredina</p>
+    <h2>12.00°</h2>
+    <p>dno</p>
+    <h2>12.00°</h2>
+     
+  
+</div>
+<div class="col-2 col-m-6 pump_pec"> 
+<img src="../slike/gr_pu3.png" width="70" height="60"> 
+<img src="../slike/ok.png"  width="50" height="50">    
+</div>
+
+<div class="col-2 col-m-6"> 
+       
+        <div ><a href="graf_sanitarna_temp.php"><img src="../slike/bojler.png" width="70" height="110"></a><span><img src="../slike/no.png" width="50" height="50"></span></div>
+        <div ><a href="graf_pec_temp2.php"><img src="../slike/pec.png" width="90" height="140"></a></div>
+        
+        <div class="vent"><img src="../slike/vent.gif" width="50" height="50"><span>     
+        <img src="../slike/ok.png"  width="50" height="50">        
+        </span></div>
+   
+</div>
+
+
+<div class="col-2 col-m-6 tekst-pec"> 
+  
+    <h2>34.00°C</h2>
+    <p><br></p>
+    <h2>19.00°C</h2>
+  
+</div>
+
+<div class="col-2 col-m-6">
+    <a href="grafVANJ.php">Vanjska temperatura 11.50°C</a>
+    <br>
+    Resetirano: 60 <br>
+    <a href="graf_tuya.php">Tuya temperatura</a>
+</div>
+ <div ><a href="graf_napon2.php"><img src="../slike/voltage.png" width="90" height="145"></a></div>
+</div>
+
+
+</body>
+</html>

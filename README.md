@@ -4,13 +4,13 @@ Windows i Android aplikacija za upravljanje postojećim sustavom grijanja na [au
 
 ## Android
 
-[Preuzmite TermoDom za Android 1.0.0 (APK)](https://github.com/leo25matko-boop/termo/releases/download/v1.0.0/TermoDom-Android-1.0.0.apk).
+[Preuzmite izvornu mobilnu aplikaciju TermoDom za Android 1.1.0 (APK)](https://github.com/leo25matko-boop/termo/releases/download/v1.0.0/TermoDom-Android-1.1.0.apk).
 
-Otvorite preuzeti APK na mobitelu i dopustite instalaciju iz tog izvora ako Android to zatraži. Potreban je Android 8 ili noviji i ažuran Android System WebView. Sučelje i logika nalaze se u instaliranoj aplikaciji; za podatke i upravljanje grijanjem potreban je internet.
+Otvorite preuzeti APK na mobitelu i dopustite instalaciju iz tog izvora ako Android to zatraži. Potreban je Android 8 ili noviji. Verzija 1.1.0 koristi izvorne Android kontrole i Canvas grafikone. Ne koristi WebView, HTML zaslone ni JavaScript runtime; za podatke i upravljanje grijanjem potreban je internet.
 
 Mobilna verzija ima donju navigaciju, velike kontrole za dodir, satne klizače za obje etaže, sve grafikone i postavke. CSV se sprema kroz Androidov dijalog za odabir datoteke. Podaci se osvježavaju svakih 90 sekundi dok je aplikacija otvorena i po povratku u nju. Naredbe se šalju nakon potvrde. Preuzimanje Windows ZIP-a odnosi se na Windows verziju.
 
-Android paket koristi lokalne resurse u WebViewu i izravnu HTTPS vezu s izvornikom; nije potreban lokalni web poslužitelj. APK traži samo dozvolu za internet. Privatni ključ za potpisivanje nije dio ovog repozitorija.
+Android paket sadrži izvorno Java sučelje i izravnu HTTPS vezu s izvornikom. Postojeći HTML odgovori izvornika obrađuju se samo kao podaci; nikakav udaljeni kod ne izvršava se u aplikaciji. Windows sučelje ostaje zasebno. APK traži samo dozvolu za internet. Privatni ključ za potpisivanje nije dio ovog repozitorija.
 
 ## Instalacija
 
@@ -79,7 +79,7 @@ npm run dist:win
 
 Rezultati su u `release/`. Workflow `.github/workflows/release.yml` gradi instalater, desktop ZIP i `SHA256SUMS.txt` na oznaku oblika `v1.0.0` ili ručnim pokretanjem. Verzija oznake mora odgovarati `package.json`.
 
-Za Android koristite JDK 17, Android SDK 36 i Build Tools 35.0.0. Gradle wrapper prije gradnje sinkronizira lokalno sučelje i zajedničke module:
+Za Android koristite JDK 17, Android SDK 36 i Build Tools 35.0.0. Gradle wrapper gradi izvorno Java sučelje, HTTPS klijent i parsere. HTML/JavaScript datoteke iz desktop verzije nisu dio APK-a:
 
 ```text
 cd android
@@ -89,3 +89,5 @@ gradlew.bat :app:assembleRelease
 Potpisivanje koristi varijable okruženja `TERMODOM_ANDROID_KEYSTORE`, `TERMODOM_ANDROID_STORE_PASSWORD`, `TERMODOM_ANDROID_KEY_ALIAS` i `TERMODOM_ANDROID_KEY_PASSWORD`. Ključ čuvajte izvan repozitorija; isti ključ potreban je za nadogradnje instalirane aplikacije. Workflow `Android APK` izrađuje nepotpisani release artifact uz izričitu opciju `-PtermodomUnsigned=true`; prije instalacije potrebno ga je privatno potpisati. Gotovi potpisani APK dostupan je u GitHub Releases.
 
 Detaljne korisničke upute i popis izvornih funkcija nalaze se u `UPUTE.txt` i `FUNKCIJE.txt`.
+
+Android workflow provjerava JVM testove parsera i spremanja te pokreće izvorno sučelje u Android 15 emulatoru s testnim odgovorima. Provjerava svih pet kartica, 24 satna klizača, nativne grafikone i odsutnost WebViewa. Snimke zaslona i rezultati nalaze se u artifactu `termodom-android-native-verification`. Testovi ne šalju naredbe stvarnom grijanju.

@@ -1,0 +1,1 @@
+{"id":"voltage","title":"Napon","labels":[],"datasets":[{"label":"Faza A","data":[],"color":"#4caf50","stepped":false},{"label":"Faza B","data":[],"color":"#fdd835","stepped":false},{"label":"Faza C","data":[],"color":"#fb8c00","stepped":false},{"label":"ALARM 250V","data":[],"color":"red","stepped":false}],"unit":"V","period":"24h"}
