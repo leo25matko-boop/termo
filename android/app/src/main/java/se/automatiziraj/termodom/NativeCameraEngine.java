@@ -30,7 +30,7 @@ public final class NativeCameraEngine implements AutoCloseable {
     private static final String KEY="TermoDom.CameraSession.v1";
     private final Context context;
     private final File directory,session;
-    private final OkHttpClient client=new OkHttpClient.Builder().connectTimeout(3,TimeUnit.SECONDS).readTimeout(55,TimeUnit.SECONDS).callTimeout(60,TimeUnit.SECONDS).followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false).build();
+    private final OkHttpClient client=new OkHttpClient.Builder().proxy(java.net.Proxy.NO_PROXY).connectTimeout(3,TimeUnit.SECONDS).readTimeout(55,TimeUnit.SECONDS).callTimeout(60,TimeUnit.SECONDS).followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false).build();
     private Process process;
     private String authorization,rtspPassword,streamName;
     private int apiPort,rtspPort;
@@ -52,7 +52,10 @@ public final class NativeCameraEngine implements AutoCloseable {
                 .put("rtsp",new JSONObject().put("listen","127.0.0.1:"+rtspPort).put("username","termodom").put("password",rtspPassword)).put("webrtc",new JSONObject().put("listen","")).put("srt",new JSONObject().put("listen","")).put("homekit",new JSONObject().put("listen","")).put("log",new JSONObject().put("level","disabled")).put("xiaomi",tokens);
         ProcessBuilder builder=new ProcessBuilder(binary.getAbsolutePath(),"-config","-");builder.directory(directory);builder.redirectErrorStream(true);builder.environment().put("HOME",directory.getAbsolutePath());builder.environment().put("TMPDIR",context.getCacheDir().getAbsolutePath());builder.environment().put("LD_LIBRARY_PATH",context.getApplicationInfo().nativeLibraryDir);process=builder.start();try(OutputStream pipe=process.getOutputStream()){pipe.write(settings.toString().getBytes(StandardCharsets.UTF_8));}
         final Process child=process;Thread drain=new Thread(()->{try(InputStream input=child.getInputStream()){byte[] bytes=new byte[4096];while(input.read(bytes)!=-1){/* Never log credentials, camera URLs, or cloud responses. */}}catch(IOException ignored){}},"TermoDom-camera-engine");drain.setDaemon(true);drain.start();
-        long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(12);Exception failure=null;while(System.nanoTime()<deadline&&!closing){if(!child.isAlive())throw new IOException("Izvorni modul kamere nije pokrenut.");try{call("GET","/api/xiaomi",null);requireIsolation();return;}catch(Exception error){failure=error;Thread.sleep(100);}}
+        long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(12);Exception failure=null;boolean ready=false;
+        while(System.nanoTime()<deadline&&!closing){if(!child.isAlive())throw new IOException("Izvorni modul kamere nije pokrenut.");try{call("GET","/api/termodom/session",null);ready=true;break;}catch(Exception error){failure=error;Thread.sleep(100);}}
+        if(ready){try{requireIsolation();return;}catch(Exception isolation){stop();throw new IOException("Provjera zaštite lokalnog prijenosa nije prošla.",isolation);}}
+        if(BuildConfig.DEBUG)android.util.Log.e("TermoDomCamera","Native engine health failed before account login: "+(failure==null?"no response":failure.getClass().getSimpleName()));
         stop();throw new IOException("Kamera nije pokrenuta. Pokušajte ponovno.",failure);
     }
     private String call(String method,String path,RequestBody body) throws Exception {
@@ -67,8 +70,8 @@ public final class NativeCameraEngine implements AutoCloseable {
     }
     /** Fail closed if either child listener would expose a session without credentials. */
     private void requireIsolation() throws Exception {
-        Request anonymous=new Request.Builder().url("http://127.0.0.1:"+apiPort+"/api/xiaomi").build();try(Response response=client.newCall(anonymous).execute()){if(response.code()!=401)throw new IOException("Zaštita lokalnog modula kamere nije aktivna.");}
-        try(Socket socket=new Socket()){socket.connect(new InetSocketAddress("127.0.0.1",rtspPort),2000);socket.setSoTimeout(2000);OutputStream out=socket.getOutputStream();out.write(("DESCRIBE rtsp://127.0.0.1:"+rtspPort+"/"+streamName+" RTSP/1.0\r\nCSeq: 1\r\nAccept: application/sdp\r\n\r\n").getBytes(StandardCharsets.US_ASCII));out.flush();BufferedReader input=new BufferedReader(new InputStreamReader(socket.getInputStream(),StandardCharsets.US_ASCII));String line=input.readLine();if(line==null||!line.startsWith("RTSP/1.0 401"))throw new IOException("Zaštita prijenosa kamere nije aktivna.");}
+        Request anonymous=new Request.Builder().url("http://127.0.0.1:"+apiPort+"/api/xiaomi").build();try(Response response=client.newCall(anonymous).execute()){if(response.code()!=401)throw new IOException("Zaštita lokalnog modula kamere nije aktivna (HTTP "+response.code()+").");}
+        try(Socket socket=new Socket()){socket.connect(new InetSocketAddress("127.0.0.1",rtspPort),2000);socket.setSoTimeout(2000);OutputStream out=socket.getOutputStream();out.write(("DESCRIBE rtsp://127.0.0.1:"+rtspPort+"/"+streamName+" RTSP/1.0\r\nCSeq: 1\r\nAccept: application/sdp\r\n\r\n").getBytes(StandardCharsets.US_ASCII));out.flush();BufferedReader input=new BufferedReader(new InputStreamReader(socket.getInputStream(),StandardCharsets.US_ASCII));String line=input.readLine();if(line==null||!line.startsWith("RTSP/1.0 401"))throw new IOException("Zaštita prijenosa kamere nije aktivna ("+(line==null?"nema odgovora":line.split(" ").length>1?line.split(" ")[1]:"neispravan status")+").");}
     }
     public synchronized String verifyIsolation() throws Exception {start();requireIsolation();return "TERMODOM_CAMERA_ENGINE_OK: native child; HTTP401; RTSP401; private pipe; no cloud request";}
     public synchronized JSONArray accounts() throws Exception {start();String body=call("GET","/api/xiaomi",null);return body.trim().equals("null")?new JSONArray():new JSONArray(body);}
