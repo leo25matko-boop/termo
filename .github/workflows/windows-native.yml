@@ -70,7 +70,7 @@ jobs:
           Copy-Item windows/publish/core-tests.txt "$evidence/core-tests.txt"
           Get-Content "$evidence/core-tests.txt"
           $screens = @(Get-ChildItem -LiteralPath $evidence -Filter '*.png')
-          if ($screens.Count -ne 8) { throw 'Expected eight native Windows screens.' }
+          if ($screens.Count -ne 9) { throw 'Expected nine native Windows screens.' }
           Remove-Item -LiteralPath windows/publish/core-tests.txt -Force
 
       - name: Verify native video decoder with pinned local media

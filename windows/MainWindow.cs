@@ -333,7 +333,9 @@ public sealed class MainWindow : Window
     void Camera()
     {
         Heading("Xiaomi Mi 360", "Izvorni Xiaomi račun · izravan prikaz u aplikaciji.");
-        cameraPanel ??= new CameraPanel(verification); body.Children.Add(Card(cameraPanel, "#3C655B"));
+        cameraPanel ??= new CameraPanel(verification);
+        if (cameraPanel.Parent is Border previousCard) previousCard.Child = null;
+        body.Children.Add(Card(cameraPanel, "#3C655B"));
     }
     void Prepared()
     {
@@ -415,7 +417,7 @@ public sealed class MainWindow : Window
             await engine.StartAsync();
             File.WriteAllText(Path.Combine(directory, "native-camera-engine.txt"), "TERMODOM_WINDOWS_NATIVE_CAMERA_ENGINE_OK\nNative C# controller started bundled process; anonymous HTTP and RTSP rejected; no account, Xiaomi login or camera command used.\n");
         }
-        foreach (var (id, sub, file) in new[] { ("home", "zones", "01-moj-dom"), ("heating", "zones", "02-grijanje"), ("heating", "schedule", "03-rasporedi"), ("heating", "charts", "04-grafikoni"), ("heating", "settings", "05-postavke"), ("solar", "zones", "06-solarna"), ("camera", "zones", "07-kamera"), ("prepared", "zones", "08-priprema") })
+        foreach (var (id, sub, file) in new[] { ("home", "zones", "01-moj-dom"), ("heating", "zones", "02-grijanje"), ("heating", "schedule", "03-rasporedi"), ("heating", "charts", "04-grafikoni"), ("heating", "settings", "05-postavke"), ("solar", "zones", "06-solarna"), ("camera", "zones", "07-kamera"), ("camera", "zones", "09-kamera-postavke"), ("prepared", "zones", "08-priprema") })
         {
             heatingTab = sub; await Navigate(id); await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle); UpdateLayout();
             if (id == "heating" && sub == "schedule")
@@ -430,11 +432,17 @@ public sealed class MainWindow : Window
             }
             if (id == "heating" && sub == "settings" && Descendants<TextBox>(this).Count() != 5) throw new Exception("Native UI mora prikazati pet brojčanih postavki.");
             if (id == "heating" && sub == "charts" && !Descendants<NativeChart>(this).Any()) throw new Exception("Native Canvas grafikon nedostaje.");
+            if (id == "camera")
+            {
+                cameraPanel!.VerifyBindings();
+                if (file == "09-kamera-postavke") { scroll.ScrollToVerticalOffset(800); UpdateLayout(); }
+                File.WriteAllText(Path.Combine(directory, "native-camera-controls.txt"), "TERMODOM_WINDOWS_CAMERA_BINDINGS_OK\nExplicit disabled Primjer metadata: bool false, provider enum value 2/Auto, numeric range/step, HH:mm and read-only SD status; Auto/SD/HD quality preserves private source fields. No account or camera commands used.\n");
+            }
             if (Descendants<DependencyObject>(this).Any(x => x.GetType().FullName?.Contains("WebBrowser", StringComparison.Ordinal) == true || x.GetType().FullName?.Contains("WebView", StringComparison.Ordinal) == true)) throw new Exception("Web prikaz nije dopušten.");
             var bitmap = new RenderTargetBitmap((int)ActualWidth, (int)ActualHeight, 96, 96, PixelFormats.Pbgra32); bitmap.Render(this);
             using var output = File.Create(Path.Combine(directory, file + ".png")); var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap)); encoder.Save(output);
         }
-        File.WriteAllText(Path.Combine(directory, "native-smoke.txt"), "TERMODOM_WINDOWS_NATIVE_SMOKE_OK\nWPF native controls; 24 sliders; 5 numeric settings + climate; 10 chart sources; fixture reads only; no WebView.\n");
+        File.WriteAllText(Path.Combine(directory, "native-smoke.txt"), "TERMODOM_WINDOWS_NATIVE_SMOKE_OK\nWPF native controls; 24 sliders; 5 numeric settings + climate; 10 chart sources; nine native screens including disabled synthetic camera metadata bindings; fixture reads only; no WebView.\n");
     }
     static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
     {

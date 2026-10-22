@@ -26,6 +26,7 @@ public sealed class CameraPanel : StackPanel, IAsyncDisposable
     readonly TextBlock message = new() { TextWrapping = TextWrapping.Wrap, Foreground = Brushes.LightSeaGreen, Margin = new Thickness(0, 5, 0, 15) };
     readonly StackPanel authIntro = new(), login = new(), challenge = new(), connected = new(), modelControls = new(), preparedControls = new();
     readonly ComboBox devices = new() { DisplayMemberPath = "Name", MinWidth = 260, HorizontalAlignment = HorizontalAlignment.Left };
+    readonly ComboBox quality = new() { ItemsSource = new[] { "Automatski", "SD", "HD" }, SelectedIndex = 0, MinWidth = 180, HorizontalAlignment = HorizontalAlignment.Left };
     readonly Border videoContainer = new() { Height = 300, Background = Brushes.Black, CornerRadius = new CornerRadius(12), Margin = new Thickness(0, 8, 0, 12), ClipToBounds = true };
     readonly Button signIn = Btn("Prijavi se Xiaomi računom"), refresh = Btn("Osvježi kamere"), play = Btn("Pokreni prikaz uživo"), stop = Btn("Zaustavi prikaz"), logout = Btn("Odjavi Xiaomi račun");
     readonly Button mute = Btn("Zvuk isključen"), fullscreen = Btn("Cijeli zaslon"), snapshot = Btn("Spremi sliku");
@@ -41,6 +42,7 @@ public sealed class CameraPanel : StackPanel, IAsyncDisposable
     readonly List<Button> ptzButtons = [];
     readonly CheckBox invertPtz = new() { Content = "Obrnuti smjerovi za stropnu montažu" };
     string playingName = "";
+    string selectedQuality = "auto";
     static TextBlock Text(string text, double size = 14, Brush? brush = null) => new() { Text = text, FontSize = size, Foreground = brush ?? Brushes.WhiteSmoke, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) };
     static Button Btn(string text) => new() { Content = text };
     public CameraPanel(bool verification)
@@ -69,6 +71,16 @@ public sealed class CameraPanel : StackPanel, IAsyncDisposable
         };
         connected.Children.Add(videoContainer); Stage("Kamera je spremna", "Odaberite kameru i pokrenite prikaz uživo.");
         var actions = new WrapPanel(); foreach (var button in new[] { play, stop, mute, snapshot, fullscreen }) actions.Children.Add(button); connected.Children.Add(actions);
+        connected.Children.Add(Text("Kvaliteta prijenosa", 12, Brushes.LightSlateGray)); connected.Children.Add(quality);
+        AutomationProperties.SetAutomationId(quality, "camera-quality");
+        quality.SelectionChanged += async (_, _) => await Run(async () =>
+        {
+            var next = quality.SelectedIndex switch { 1 => "sd", 2 => "hd", _ => "auto" };
+            if (next == selectedQuality) return;
+            var resume = player?.IsPlaying == true && !cameraOff; selectedQuality = next;
+            if (devices.SelectedItem is CameraDevice) { await RegisterSelected(); if (resume && !cameraOff) await Play(); }
+            message.Text = cameraOff ? "Kvaliteta je odabrana. Kamera ostaje isključena." : "Kvaliteta je odabrana; dostupnu rezoluciju određuje kamera.";
+        });
         AutomationProperties.SetAutomationId(videoContainer, "camera-video-stage"); AutomationProperties.SetAutomationId(mute, "camera-mute"); AutomationProperties.SetAutomationId(snapshot, "camera-snapshot"); AutomationProperties.SetAutomationId(fullscreen, "camera-fullscreen");
         connected.Children.Add(Text("Slika se sprema iz stvarnog video prijenosa. Mogućnosti ovog modela učitavaju se iz izvornog Xiaomi računa.", 12, Brushes.LightSlateGray));
         connected.Children.Add(modelControls); connected.Children.Add(preparedControls); RenderMetadata(new JsonObject { ["controls"] = new JsonArray(), ["ptz"] = false }); connected.Children.Add(logout);
@@ -82,8 +94,8 @@ public sealed class CameraPanel : StackPanel, IAsyncDisposable
         {
             authIntro.Visibility = login.Visibility = Visibility.Collapsed; connected.Visibility = Visibility.Visible;
             devices.ItemsSource = new[] { new CameraDevice("Xiaomi Mi 360 · pregled sučelja", "", "", "") }; devices.SelectedIndex = 0;
-            RenderMetadata(new JsonObject { ["controls"] = new JsonArray(), ["ptz"] = false });
-            message.Text = "Pregled sučelja nakon prijave · bez povezivanja s računom ili kamerom."; Stage("◉", "Pregled sučelja · bez prijenosa");
+            RenderMetadata(VerificationMetadata());
+            message.Text = "Primjer sučelja nakon prijave · sintetičke postavke, bez povezivanja s računom ili kamerom."; Stage("◉", "Pregled sučelja · bez prijenosa");
         }
         else if (engine.HasSavedAccount)
         {
@@ -102,6 +114,7 @@ public sealed class CameraPanel : StackPanel, IAsyncDisposable
         var live = player?.IsPlaying == true;
         signIn.IsEnabled = refresh.IsEnabled = logout.IsEnabled = challenge.IsEnabled = !busy && !verification;
         devices.IsEnabled = !busy && !verification;
+        quality.IsEnabled = !busy && !verification;
         play.IsEnabled = !busy && !verification && !cameraOff && devices.SelectedItem is CameraDevice;
         stop.IsEnabled = !busy && !verification && (live || connecting);
         mute.IsEnabled = snapshot.IsEnabled = fullscreen.IsEnabled = !busy && live && !verification;
@@ -165,7 +178,7 @@ public sealed class CameraPanel : StackPanel, IAsyncDisposable
         var id = Value(control["id"]); var label = Value(control["label"]); var format = Value(control["format"]);
         var row = new StackPanel { Margin = new Thickness(0, 9, 0, 11) }; row.Children.Add(Text(label, 14)); modelControls.Children.Add(row);
         if (!Flag(control["known"]) || !Flag(control["readable"])) { row.Children.Add(Text("Nije dostupno · U pripremi", 12, Brushes.LightSlateGray)); return; }
-        if (!Flag(control["writable"])) { row.Children.Add(Text(ControlValue(control), 15, Brushes.LightSeaGreen)); return; }
+        if (!Flag(control["writable"])) { var display = Text(ControlValue(control), 15, Brushes.LightSeaGreen); AutomationProperties.SetAutomationId(display, "camera-option-" + id); row.Children.Add(display); return; }
         if (format == "bool" && bool.TryParse(Value(control["value"]), out var boolean))
         {
             var checkbox = new CheckBox { Content = label, IsChecked = boolean }; AutomationProperties.SetAutomationId(checkbox, "camera-option-" + id); row.Children.Add(checkbox);
@@ -181,6 +194,7 @@ public sealed class CameraPanel : StackPanel, IAsyncDisposable
         if (format == "time")
         {
             var input = new TextBox { Text = Value(control["value"]), Width = 140, MaxLength = 5, HorizontalAlignment = HorizontalAlignment.Left }; row.Children.Add(input);
+            AutomationProperties.SetAutomationId(input, "camera-option-" + id);
             var apply = Btn("Primijeni vrijeme"); row.Children.Add(apply);
             apply.Click += async (_, _) => { if (!Regex.IsMatch(input.Text, @"^(?:[01]\d|2[0-3]):[0-5]\d$")) { message.Text = "Unesite vrijeme u obliku HH:mm."; return; } await ApplyControl(id, JsonValue.Create(input.Text)); }; return;
         }
@@ -197,6 +211,8 @@ public sealed class CameraPanel : StackPanel, IAsyncDisposable
     {
         await Run(async () =>
         {
+            // WPF changes a checkbox/picker before its event runs. Keep the confirmed readback visible while awaiting a write.
+            if (controlsMetadata != null) RenderMetadata(controlsMetadata);
             try
             {
                 var response = await engine.SetControlAsync(id, value);
@@ -227,7 +243,7 @@ public sealed class CameraPanel : StackPanel, IAsyncDisposable
     {
         if (devices.SelectedItem is not CameraDevice selected) return;
         await Stop(); streamUri = null; registeredDevice = null; modelControls.Children.Clear(); Prepared([]); cameraOff = false;
-        streamUri = await engine.OpenStreamAsync(selected); registeredDevice = selected;
+        streamUri = await engine.OpenStreamAsync(selected with { SourceUrl = WithQuality(selected.SourceUrl, selectedQuality) }); registeredDevice = selected;
         try
         {
             var metadata = await engine.GetControlsAsync(); RenderMetadata(metadata);
@@ -238,6 +254,38 @@ public sealed class CameraPanel : StackPanel, IAsyncDisposable
         UpdateControls();
     }
     async Task EnsureStarted() { if (!started) { await engine.StartAsync(); started = true; } }
+    internal static string WithQuality(string source, string quality)
+    {
+        if (quality is not ("auto" or "sd" or "hd") || !Uri.TryCreate(source, UriKind.Absolute, out var uri) || uri.Scheme != "xiaomi") throw new ControllerException("Kvaliteta ili povezivanje kamere nije valjano.");
+        var builder = new UriBuilder(uri);
+        var fields = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries).Where(field => Uri.UnescapeDataString(field.Split('=', 2)[0]) != "subtype").ToList();
+        fields.Add("subtype=" + quality); builder.Query = string.Join('&', fields); return builder.Uri.AbsoluteUri;
+    }
+    static JsonObject VerificationMetadata() => JsonNode.Parse("""
+        {"model":"Primjer · sintetički model","ptz":false,"controls":[
+          {"id":"camera-on","role":"camera-power","label":"Primjer · kamera uključena","format":"bool","readable":true,"writable":true,"known":true,"value":false},
+          {"id":"night-shot","label":"Primjer · noćni prikaz","format":"uint8","readable":true,"writable":true,"known":true,"value":2,"options":[{"value":0,"label":"Primjer · uključeno"},{"value":1,"label":"Primjer · isključeno"},{"value":2,"label":"Primjer · automatski"}]},
+          {"id":"speaker-volume","label":"Primjer · glasnoća zvučnika","format":"uint8","readable":true,"writable":true,"known":true,"value":40,"minimum":0,"maximum":100,"step":5},
+          {"id":"detection-start","label":"Primjer · početak detekcije","format":"time","readable":true,"writable":true,"known":true,"value":"08:30"},
+          {"id":"sd-status","label":"Primjer · stanje SD kartice","format":"uint8","readable":true,"writable":false,"known":true,"value":1,"options":[{"value":1,"label":"Primjer · spremna"}]}
+        ]}
+        """)!.AsObject();
+    internal void VerifyBindings()
+    {
+        if (!verification) throw new InvalidOperationException("Camera fixture requires verification mode.");
+        IEnumerable<DependencyObject> All(DependencyObject root)
+        {
+            for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++) { var child = VisualTreeHelper.GetChild(root, i); yield return child; foreach (var descendant in All(child)) yield return descendant; }
+        }
+        T Find<T>(string id) where T : DependencyObject => All(this).OfType<T>().Single(c => AutomationProperties.GetAutomationId(c) == id);
+        var power = Find<CheckBox>("camera-option-camera-on"); var mode = Find<ComboBox>("camera-option-night-shot"); var volume = Find<Slider>("camera-option-speaker-volume");
+        if (power.IsChecked != false || power.IsEnabled || mode.IsEnabled || volume.IsEnabled || quality.IsEnabled || quality.Items.Count != 3 || ptzButtons.Any(b => b.IsEnabled)) throw new Exception("Camera preview controls must be disabled and explicitly synthetic.");
+        if (mode.SelectedItem is not Option option || Value(option.Value) != "2" || option.Label != "Primjer · automatski") throw new Exception("Camera enum binding lost provider values.");
+        if (volume.Minimum != 0 || volume.Maximum != 100 || volume.TickFrequency != 5 || volume.Value != 40 || Find<TextBox>("camera-option-detection-start").Text != "08:30" || Find<TextBlock>("camera-option-sd-status").Text != "Primjer · spremna") throw new Exception("Camera range/time/read-only metadata bindings differ.");
+        var sample = "xiaomi://192.0.2.1?did=123&model=chuangmi.camera.example&user_id=456&subtype=old&extra=a%2Fb&extra=c";
+        var revised = WithQuality(sample, "hd"); var revisedUri = new Uri(revised);
+        if (revisedUri.Scheme != "xiaomi" || revisedUri.Host != "192.0.2.1" || !revisedUri.Query.Contains("did=123&model=chuangmi.camera.example&user_id=456") || !revisedUri.Query.Contains("extra=a%2Fb&extra=c") || !revisedUri.Query.EndsWith("subtype=hd") || revisedUri.Query.Contains("subtype=old")) throw new Exception("Camera quality changed private source parameters.");
+    }
     async Task HandleLogin(CameraLoginResult result)
     {
         challenge.Children.Clear();
