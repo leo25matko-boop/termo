@@ -18,7 +18,7 @@ def free_port():
         listener.bind(('127.0.0.1', 0))
         return listener.getsockname()[1]
 
-def verify(engine):
+def verify(engine, android_json=False):
     api_port, rtsp_port = free_port(), free_port()
     while rtsp_port == api_port:
         rtsp_port = free_port()
@@ -52,7 +52,10 @@ def verify(engine):
                                  stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                  creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
         try:
-            child.stdin.write(json.dumps(config).encode())
+            encoded = json.dumps(config)
+            if android_json:
+                encoded = encoded.replace('/', '\\/')
+            child.stdin.write(encoded.encode())
             child.stdin.close()
             for attempt in range(100):
                 if child.poll() is not None:
@@ -91,7 +94,7 @@ def verify(engine):
                              and line.split()[3] == 'LISTENING']
                 assert len(listeners) == 2, f'Unexpected native listener count: {len(listeners)}'
                 assert all(address.startswith('127.0.0.1:') for address in listeners), 'Native engine exposed a LAN listener.'
-            print('TERMODOM_CAMERA_ENGINE_OK: HTTP and RTSP deny missing/wrong credentials; authenticated requests pass; two loopback-only listeners; no web UI/log/config endpoints; memory-only config; Xiaomi controlCommands=0')
+            print('TERMODOM_CAMERA_ENGINE_OK: ' + ('Android escaped-slash JSON' if android_json else 'Windows JSON') + '; HTTP and RTSP deny missing/wrong credentials; authenticated requests pass; two loopback-only listeners; no web UI/log/config endpoints; memory-only config; Xiaomi controlCommands=0')
         finally:
             child.terminate()
             try:
@@ -100,8 +103,28 @@ def verify(engine):
                 child.kill()
                 child.wait(timeout=3)
 
+def verify_fail_closed(engine):
+    for invalid in (b'', b'null', b'[]', b'{}', b'{"api":{}}', b'{}'+b' '*(1<<20)):
+        child = subprocess.Popen([str(engine.resolve()), '-config', '-'],
+            stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+        try:
+            try:
+                child.stdin.write(invalid)
+                child.stdin.close()
+            except BrokenPipeError:
+                pass
+            assert child.wait(timeout=3) != 0, 'Malformed private configuration started the engine.'
+        finally:
+            if child.poll() is None:
+                child.kill()
+                child.wait(timeout=3)
+    print('TERMODOM_CAMERA_CONFIG_FAIL_CLOSED_OK: empty, malformed, non-object, incomplete and oversized stdin exit before listeners')
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--engine', required=True, type=Path)
     arguments = parser.parse_args()
     verify(arguments.engine)
+    verify(arguments.engine, android_json=True)
+    verify_fail_closed(arguments.engine)
