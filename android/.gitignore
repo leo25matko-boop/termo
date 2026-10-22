@@ -1,0 +1,9 @@
+.gradle/
+local.properties
+**/build/
+app/src/main/assets/public/
+app/src/main/assets/lib/
+*.jks
+*.keystore
+*.p12
+*.pem

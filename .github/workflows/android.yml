@@ -1,0 +1,74 @@
+name: Android APK
+
+on:
+  push:
+    paths:
+      - 'android/**'
+      - 'public/**'
+      - 'lib/**'
+      - 'scripts/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Android release for local signing
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 17
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Check the runner's preinstalled SDK
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          if [[ -z "$sdk" || ! -f "$sdk/platforms/android-36/android.jar" ]]; then
+            echo '::error::This runner must have Android SDK platform 36 preinstalled.'
+            exit 1
+          fi
+          if [[ ! -f "$sdk/build-tools/35.0.0/package.xml" ]]; then
+            echo '::error::This runner must have Android SDK Build Tools 35.0.0 preinstalled.'
+            exit 1
+          fi
+          command -v node
+          node --version
+          java -version
+
+      - name: Verify Gradle wrapper
+        run: |
+          set -euo pipefail
+          echo '81a82aaea5abcc8ff68b3dfcb58b3c3c429378efd98e7433460610fecd7ae45f  android/gradle/wrapper/gradle-wrapper.jar' | sha256sum --check --strict
+          chmod +x android/gradlew
+
+      - name: Build unsigned release APK
+        working-directory: android
+        run: ./gradlew :app:assembleRelease -PtermodomUnsigned=true --no-daemon --stacktrace
+
+      - name: Upload APK for private signing
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: termodom-android-unsigned
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
