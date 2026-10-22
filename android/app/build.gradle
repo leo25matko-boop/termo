@@ -73,7 +73,7 @@ android {
 
 dependencies {
     implementation 'org.jsoup:jsoup:1.21.2'
-    implementation 'com.squareup.okhttp3:okhttp:5.5.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     testImplementation 'junit:junit:4.13.2'
     // Local JVM tests need a real JSON implementation instead of android.jar stubs.
     testImplementation 'org.json:json:20260814'

@@ -85,7 +85,8 @@ public final class NativeSmokeInstrumentation extends Instrumentation {
             capture("05-postavke");
 
             check(requests.get() >= 5, "Expected fixture reads for every controller area.");
-            result.putString("stream", "\nTERMODOM_NATIVE_SMOKE_OK: 5 native screens; 24 hourly sliders; native chart; fixture-only reads.\n");
+            String liveReport = liveReadReport();
+            result.putString("stream", "\nTERMODOM_NATIVE_SMOKE_OK: 5 native screens; 24 hourly sliders; native chart; fixture-only UI reads.\n" + liveReport);
             finish(Activity.RESULT_OK, result);
         } catch (Throwable error) {
             try { if (activity != null && evidenceDirectory != null) capture("failure"); } catch (Throwable ignored) { }
@@ -94,6 +95,27 @@ public final class NativeSmokeInstrumentation extends Instrumentation {
             result.putString("stream", "\nTERMODOM_NATIVE_SMOKE_FAILED\n" + trace);
             finish(Activity.RESULT_CANCELED, result);
         }
+    }
+
+    /** One optional real status GET verifies Android TLS without sending any control command. */
+    private String liveReadReport() throws Exception {
+        String report;
+        long started = SystemClock.elapsedRealtime();
+        try {
+            org.json.JSONObject live = new HeatingRepository().status();
+            org.json.JSONArray zones = live.optJSONArray("zones");
+            check(zones != null && zones.length() > 0, "The source returned no heating zones.");
+            report = "TERMODOM_LIVE_STATUS_READ_OK: zoneCount=" + zones.length();
+        } catch (Throwable error) {
+            String code = error instanceof HeatingRepository.AppException ? " status=" + ((HeatingRepository.AppException) error).status : "";
+            report = "TERMODOM_LIVE_STATUS_READ_UNAVAILABLE:" + code + " " + error.getClass().getSimpleName() + ": " + error.getMessage();
+        }
+        report += "; elapsedMs=" + (SystemClock.elapsedRealtime() - started)
+                + "; source=https://automatiziraj.se/centralno/php/novo.php; controlCommands=0\n";
+        try (FileOutputStream output = new FileOutputStream(new File(evidenceDirectory, "live-status-read.txt"))) {
+            output.write(report.getBytes(StandardCharsets.UTF_8));
+        }
+        return report;
     }
 
     private void navigate(String screen) throws Exception {
