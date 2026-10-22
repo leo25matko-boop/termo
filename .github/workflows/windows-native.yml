@@ -9,6 +9,7 @@ on:
       - '.github/workflows/windows-native.yml'
       - 'scripts/build-camera-engine.ps1'
       - 'scripts/prepare-camera-engine.py'
+      - 'scripts/camera/**'
       - 'scripts/verify-camera-engine.py'
 
 permissions:

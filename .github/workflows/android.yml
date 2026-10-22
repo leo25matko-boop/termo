@@ -6,6 +6,7 @@ on:
       - 'android/**'
       - '.github/workflows/android.yml'
       - 'scripts/prepare-camera-engine.py'
+      - 'scripts/camera/**'
   workflow_dispatch:
 
 permissions:
@@ -202,4 +203,3 @@ jobs:
         run: |
           sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           "$sdk/platform-tools/adb" emu kill || true
-
