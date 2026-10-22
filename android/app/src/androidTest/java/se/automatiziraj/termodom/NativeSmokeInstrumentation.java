@@ -103,7 +103,7 @@ public final class NativeSmokeInstrumentation extends Instrumentation {
             capture("06-solarna-elektrana");
 
             openModule("camera");
-            waitFor("camera", () -> hasText(activity.getWindow().getDecorView(), "Xiaomi"));
+            waitFor("camera", () -> findDescription(activity.getWindow().getDecorView(), "camera-username") != null && countEditors(activity.getWindow().getDecorView()) >= 2);
             verifyNativeHierarchy();
             capture("07-kamera");
 
@@ -113,8 +113,9 @@ public final class NativeSmokeInstrumentation extends Instrumentation {
             capture("08-priprema");
 
             check(requests.get() >= 5, "Expected fixture reads for every controller area.");
+            String cameraReport = cameraEngineReport();
             String liveReport = liveReadReport();
-            result.putString("stream", "\nTERMODOM_NATIVE_SMOKE_OK: 8 native screens; 24 hourly sliders; heating and solar native charts; fixture-only UI reads; no external camera or login launch.\n" + liveReport);
+            result.putString("stream", "\nTERMODOM_NATIVE_SMOKE_OK: 8 native screens; 24 hourly sliders; heating and solar native charts; fixture-only UI reads; inline Xiaomi login; native LibVLC; no external app launch.\n" + cameraReport + liveReport);
             finish(Activity.RESULT_OK, result);
         } catch (Throwable error) {
             try { if (activity != null && evidenceDirectory != null) capture("failure"); } catch (Throwable ignored) { }
@@ -123,6 +124,24 @@ public final class NativeSmokeInstrumentation extends Instrumentation {
             result.putString("stream", "\nTERMODOM_NATIVE_SMOKE_FAILED\n" + trace);
             finish(Activity.RESULT_CANCELED, result);
         }
+    }
+
+    /** The child starts and enforces authentication without any Xiaomi account or cloud request. */
+    private String cameraEngineReport() throws Exception {
+        String report;
+        try(NativeCameraEngine camera=new NativeCameraEngine(getTargetContext())) { report=camera.verifyIsolation(); }
+        AtomicReference<Throwable> failure=new AtomicReference<>();
+        runOnMainSync(()->{
+            org.videolan.libvlc.LibVLC lib=null;
+            org.videolan.libvlc.MediaPlayer player=null;
+            try { lib=new org.videolan.libvlc.LibVLC(getTargetContext(),new java.util.ArrayList<>(java.util.Arrays.asList("--no-metadata-network-access","--no-lua","--no-video-title-show","--quiet")));player=new org.videolan.libvlc.MediaPlayer(lib); }
+            catch(Throwable error){failure.set(error);}
+            finally { if(player!=null)player.release();if(lib!=null)lib.release(); }
+        });
+        if(failure.get()!=null)throw new AssertionError("Bundled native LibVLC failed to initialize",failure.get());
+        report += "; LibVLC native initialization OK; no account login or real camera stream was attempted\n";
+        try(FileOutputStream output=new FileOutputStream(new File(evidenceDirectory,"camera-engine.txt"))){output.write(report.getBytes(StandardCharsets.UTF_8));}
+        return report;
     }
 
     /** One optional real status GET verifies Android TLS without sending any control command. */

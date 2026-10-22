@@ -24,6 +24,7 @@ android {
 
     defaultConfig {
         applicationId 'se.automatiziraj.termodom'
+        ndk { abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64' }
         minSdk 26
         targetSdk 36
         versionCode 3
@@ -44,6 +45,13 @@ android {
     // packaged into the Android app, even if an old assets directory exists.
     sourceSets {
         main.assets.srcDirs = []
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+            keepDebugSymbols += ["**/libgo2rtc.so"]
+        }
     }
 
     signingConfigs {
@@ -74,6 +82,7 @@ android {
 dependencies {
     implementation 'org.jsoup:jsoup:1.21.2'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'org.videolan.android:libvlc-all:3.7.7'
     testImplementation 'junit:junit:4.13.2'
     // Local JVM tests need a real JSON implementation instead of android.jar stubs.
     testImplementation 'org.json:json:20260814'

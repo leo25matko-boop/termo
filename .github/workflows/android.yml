@@ -5,6 +5,7 @@ on:
     paths:
       - 'android/**'
       - '.github/workflows/android.yml'
+      - 'scripts/prepare-camera-engine.py'
   workflow_dispatch:
 
 permissions:
@@ -55,6 +56,37 @@ jobs:
           echo '81a82aaea5abcc8ff68b3dfcb58b3c3c429378efd98e7433460610fecd7ae45f  android/gradle/wrapper/gradle-wrapper.jar' | sha256sum --check --strict
           chmod +x android/gradlew
 
+      - name: Build private native camera engine for Android ABIs
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          ndk="$(find "$sdk/ndk" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -V | tail -n 1)"
+          if [[ -z "$ndk" || ! -x "$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" ]]; then
+            echo '::error::The runner must have a licensed Android NDK preinstalled.'
+            exit 1
+          fi
+          go version
+          python3 scripts/prepare-camera-engine.py --destination "$RUNNER_TEMP/termodom-camera-source"
+          export GOTOOLCHAIN=auto
+          export GOCACHE="$RUNNER_TEMP/termodom-go-cache"
+          export GOMODCACHE="$RUNNER_TEMP/termodom-go-modules"
+          export GOMAXPROCS=3
+          mkdir -p android-verification
+          printf 'Pinned go2rtc: b5948cfb25404cc5cb37b166ecaa2dca20b11d4b\nMemory-only config; authenticated loopback HTTP and RTSP.\n' >android-verification/camera-engine-build.txt
+          source_dir="$RUNNER_TEMP/termodom-camera-source"
+          output_dir="$GITHUB_WORKSPACE/android/app/src/main/jniLibs"
+          for spec in 'arm64-v8a:arm64:aarch64-linux-android26' 'armeabi-v7a:arm:armv7a-linux-androideabi26' 'x86_64:amd64:x86_64-linux-android26'; do
+            IFS=: read -r abi arch triple <<<"$spec"
+            mkdir -p "$output_dir/$abi"
+            export GOOS=android GOARCH="$arch" CGO_ENABLED=1
+            export CC="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/$triple-clang"
+            export CGO_LDFLAGS='-Wl,-z,max-page-size=16384'
+            if [[ "$arch" == arm ]]; then export GOARM=7; else unset GOARM || true; fi
+            (cd "$source_dir" && go build -p 3 -trimpath -buildvcs=false -buildmode=pie -ldflags='-s -w -linkmode=external -extldflags=-Wl,-z,max-page-size=16384' -o "$output_dir/$abi/libgo2rtc.so" .)
+            "$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h "$output_dir/$abi/libgo2rtc.so" | grep -q 'DYN'
+            sha256sum "$output_dir/$abi/libgo2rtc.so" >>android-verification/camera-engine-build.txt
+          done
+
       - name: Test native parsers and build APKs
         working-directory: android
         run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease -PtermodomUnsigned=true --no-daemon --stacktrace
@@ -68,12 +100,16 @@ jobs:
           with zipfile.ZipFile(apk) as archive:
               assert archive.testzip() is None, 'APK ZIP integrity failed'
               names = archive.namelist()
-              assert not any(name.startswith('assets/') or name.lower().endswith(('.html', '.js', '.mjs')) for name in names), 'Web assets were packaged'
+              assert not any(name.lower().endswith(('.html', '.js', '.mjs')) for name in names), 'Web assets were packaged'
+              assets = [name for name in names if name.startswith('assets/')]
+              assert all(name.startswith(('assets/hrtfs/', 'assets/lua/')) for name in assets), 'Unexpected media assets were packaged'
+              for abi in ('arm64-v8a', 'armeabi-v7a', 'x86_64'):
+                  assert 'lib/' + abi + '/libgo2rtc.so' in names, 'Missing bundled camera engine: ' + abi
               dex = b''.join(archive.read(name) for name in names if name.endswith('.dex'))
               assert b'Landroid/webkit/WebView;' not in dex, 'WebView class reference found'
-              for native in ('MainActivity', 'TemperatureDialView', 'NativeChartView', 'HeatingRepository', 'SolarRepository'):
+              for native in ('MainActivity', 'TemperatureDialView', 'NativeChartView', 'HeatingRepository', 'SolarRepository', 'NativeCameraEngine', 'CameraPanel'):
                   assert ('Lse/automatiziraj/termodom/' + native + ';').encode() in dex, 'Missing native class: ' + native
-          print('TERMODOM_NATIVE_APK_OK: no WebView, HTML, JavaScript, or packaged web assets')
+          print('TERMODOM_NATIVE_APK_OK: native camera engine; no WebView, HTML, or JavaScript')
           PY
 
       - name: Upload APK for private signing
