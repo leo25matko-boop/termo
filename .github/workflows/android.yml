@@ -63,6 +63,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: termodom-android-unsigned
+          overwrite: true
           path: android/app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error
           retention-days: 7
@@ -76,7 +77,13 @@ jobs:
           export ANDROID_AVD_HOME="$RUNNER_TEMP/termodom-avd"
           mkdir -p "$ANDROID_USER_HOME" "$ANDROID_AVD_HOME" android-verification
           # Use only the runner's existing licenses. Never automatically accept new terms.
-          "$sdk/cmdline-tools/latest/bin/sdkmanager" --install 'emulator' 'system-images;android-35;default;x86_64' </dev/null
+          sdk_ready=false
+          for attempt in 1 2 3; do
+            if "$sdk/cmdline-tools/latest/bin/sdkmanager" --install 'emulator' 'system-images;android-35;default;x86_64' </dev/null; then sdk_ready=true; break; fi
+            echo "::warning::SDK download attempt $attempt failed; retrying the official package."
+            sleep 5
+          done
+          [[ "$sdk_ready" == true ]]
           printf 'no\n' | "$sdk/cmdline-tools/latest/bin/avdmanager" create avd --force --name termodom-native --path "$ANDROID_AVD_HOME/termodom-native.avd" --package 'system-images;android-35;default;x86_64' --device pixel_5
           test -f "$ANDROID_AVD_HOME/termodom-native.ini"
           "$sdk/emulator/emulator" -list-avds
@@ -126,6 +133,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: termodom-android-native-verification
+          overwrite: true
           path: |
             android/app/build/reports/tests/testDebugUnitTest/
             android/app/build/test-results/testDebugUnitTest/
