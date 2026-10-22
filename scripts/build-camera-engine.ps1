@@ -21,7 +21,7 @@ try {
     $env:GOARCH = 'amd64'
     Push-Location -LiteralPath $SourceDirectory
     try {
-        & go test -mod=readonly ./internal/api ./internal/app ./pkg/xiaomi/... ./pkg/tutk/...
+        & go test -mod=readonly . ./internal/api ./internal/app ./internal/xiaomi ./pkg/xiaomi/... ./pkg/tutk/...
         if ($LASTEXITCODE -ne 0) { throw 'Pinned camera protocol unit tests failed.' }
         & go build -mod=readonly -trimpath -ldflags '-s -w' -o (Join-Path $destinationDirectory 'termodom-camera.exe') .
         if ($LASTEXITCODE -ne 0) { throw 'Pinned native camera engine build failed.' }
@@ -32,6 +32,7 @@ try {
     $env:GOARCH = $previousGoarch
 }
 Copy-Item -LiteralPath (Join-Path $SourceDirectory 'LICENSE') -Destination (Join-Path $destinationDirectory 'LICENSE-go2rtc.txt')
+Copy-Item -LiteralPath (Join-Path $SourceDirectory 'LICENSE-homebridge-xiaomi-go2rtc.txt') -Destination $destinationDirectory
 Copy-Item -LiteralPath (Join-Path $SourceDirectory 'TERMODOM-PATCHES.txt') -Destination $destinationDirectory
 $digest = (Get-FileHash -LiteralPath (Join-Path $destinationDirectory 'termodom-camera.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
 [System.IO.File]::WriteAllText((Join-Path $destinationDirectory 'SHA256SUMS.txt'), "$digest  termodom-camera.exe`n")

@@ -75,7 +75,7 @@ jobs:
           printf 'Pinned go2rtc: b5948cfb25404cc5cb37b166ecaa2dca20b11d4b\nMemory-only config; authenticated loopback HTTP and RTSP.\n' >android-verification/camera-engine-build.txt
           source_dir="$RUNNER_TEMP/termodom-camera-source"
           output_dir="$GITHUB_WORKSPACE/android/app/src/main/jniLibs"
-          (cd "$source_dir" && go test -count=1 ./internal/api ./internal/app ./pkg/xiaomi)
+          (cd "$source_dir" && go test -count=1 . ./internal/api ./internal/app ./internal/xiaomi ./pkg/xiaomi/...)
           for spec in 'arm64-v8a:arm64:aarch64-linux-android26' 'armeabi-v7a:arm:armv7a-linux-androideabi26' 'x86_64:amd64:x86_64-linux-android26'; do
             IFS=: read -r abi arch triple <<<"$spec"
             echo "Building native camera engine for $abi"

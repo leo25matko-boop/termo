@@ -83,10 +83,15 @@ jobs:
           $process = Start-Process -FilePath (Join-Path $PWD 'windows/publish/TermoDom.exe') -ArgumentList "--verify-decoder=$fixture" -WindowStyle Hidden -PassThru
           if (-not $process.WaitForExit(30000)) { $process.Kill(); throw 'Native decoder verification timed out.' }
           if ($process.ExitCode -ne 0) { Get-Content windows/publish/native-verification-error.txt -ErrorAction SilentlyContinue; throw 'Native decoder failed.' }
+          $viewer = Start-Process -FilePath (Join-Path $PWD 'windows/publish/TermoDom.exe') -ArgumentList "--verify-viewer=$fixture" -WindowStyle Hidden -PassThru
+          if (-not $viewer.WaitForExit(30000)) { $viewer.Kill(); throw 'Native viewer/snapshot verification timed out.' }
+          if ($viewer.ExitCode -ne 0) { Get-Content windows/publish/native-verification-error.txt -ErrorAction SilentlyContinue; throw 'Native viewer/snapshot failed.' }
           Copy-Item windows/publish/native-decoder.txt windows-verification/native-decoder.txt
           Copy-Item windows/publish/native-decoder-frame.png windows-verification/native-decoder-frame.png
+          Copy-Item windows/publish/native-decoder-snapshot.png windows-verification/native-decoder-snapshot.png
+          Copy-Item windows/publish/native-viewer.txt windows-verification/native-viewer.txt
           Get-Content windows-verification/native-decoder.txt
-          Remove-Item -LiteralPath windows/publish/native-decoder.txt,windows/publish/native-decoder-frame.png -Force
+          Remove-Item -LiteralPath windows/publish/native-decoder.txt,windows/publish/native-decoder-frame.png,windows/publish/native-decoder-snapshot.png,windows/publish/native-viewer.txt -Force
 
       - name: Build per-user EXE installer
         shell: pwsh

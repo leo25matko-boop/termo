@@ -108,6 +108,28 @@ public final class NativeSmokeInstrumentation extends Instrumentation {
             verifyNativeHierarchy();
             capture("07-kamera");
 
+            runOnMainSync(()->{
+                View panel=findDescription(activity.getWindow().getDecorView(),"camera-native-card");
+                check(panel instanceof CameraPanel,"Native camera panel is missing.");
+                ((CameraPanel)panel).showPreviewForTest();
+            });
+            waitFor("camera preview",()->findDescription(activity.getWindow().getDecorView(),"camera-preview-label")!=null);
+            verifyNativeHierarchy();
+            check(findDescription(activity.getWindow().getDecorView(),"camera-fullscreen")!=null,"Native full screen control is missing.");
+            check(findDescription(activity.getWindow().getDecorView(),"camera-quality") instanceof android.widget.Spinner,"Native stream quality selector is missing.");
+            check(!findDescription(activity.getWindow().getDecorView(),"camera-snapshot").isEnabled(),"Synthetic preview must not permit a fake snapshot.");
+            check(!findDescription(activity.getWindow().getDecorView(),"camera-record").isEnabled(),"Synthetic preview must not permit a fake recording.");
+            capture("09-kamera-nakon-prijave-pregled");
+
+            runOnMainSync(()->{
+                View control=findDescription(activity.getWindow().getDecorView(),"camera-control-camera-on");
+                check(control instanceof android.widget.Switch,"Metadata boolean control is missing.");
+                check(!control.isEnabled(),"Synthetic settings must never send a camera command.");
+                control.requestRectangleOnScreen(new android.graphics.Rect(0,0,control.getWidth(),control.getHeight()),true);
+            });
+            waitForIdleSync();
+            capture("10-kamera-postavke-pregled");
+
             openModule("upcoming");
             waitFor("upcoming", () -> hasText(activity.getWindow().getDecorView(), "priprem"));
             verifyNativeHierarchy();
@@ -115,7 +137,7 @@ public final class NativeSmokeInstrumentation extends Instrumentation {
 
             check(requests.get() >= 5, "Expected fixture reads for every controller area.");
             String liveReport = liveReadReport();
-            result.putString("stream", "\nTERMODOM_NATIVE_SMOKE_OK: 8 native screens; 24 hourly sliders; heating and solar native charts; fixture-only UI reads; inline Xiaomi login; native LibVLC; no external app launch.\n" + cameraReport + liveReport);
+            result.putString("stream", "\nTERMODOM_NATIVE_SMOKE_OK: 9 native screens; 24 hourly sliders; heating and solar native charts; fixture-only UI reads; inline Xiaomi login; native LibVLC; explicitly synthetic post-login camera preview; no external app launch.\n" + cameraReport + liveReport);
             finish(Activity.RESULT_OK, result);
         } catch (Throwable error) {
             try { if (activity != null && evidenceDirectory != null) capture("failure"); } catch (Throwable ignored) { }
@@ -129,7 +151,7 @@ public final class NativeSmokeInstrumentation extends Instrumentation {
     /** The child starts and enforces authentication without any Xiaomi account or cloud request. */
     private String cameraEngineReport() throws Exception {
         String report;
-        try(NativeCameraEngine camera=new NativeCameraEngine(getTargetContext())) { report=camera.verifyIsolation(); }
+        try(NativeCameraEngine camera=new NativeCameraEngine(getTargetContext())) { report=camera.verifySystemTls()+"\n"+camera.verifyIsolation(); }
         AtomicReference<Throwable> failure=new AtomicReference<>();
         runOnMainSync(()->{
             org.videolan.libvlc.LibVLC lib=null;

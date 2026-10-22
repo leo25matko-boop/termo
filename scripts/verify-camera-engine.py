@@ -18,7 +18,7 @@ def free_port():
         listener.bind(('127.0.0.1', 0))
         return listener.getsockname()[1]
 
-def verify(engine, android_json=False):
+def verify(engine, android_json=False, controls=True):
     api_port, rtsp_port = free_port(), free_port()
     while rtsp_port == api_port:
         rtsp_port = free_port()
@@ -32,6 +32,8 @@ def verify(engine, android_json=False):
         'rtsp': {'listen': f'127.0.0.1:{rtsp_port}', 'username': video_user, 'password': video_password},
         'log': {'level': 'disabled', 'output': ''}, 'xiaomi': {}, 'streams': {},
     }
+    if controls:
+        config['api']['allow_paths'].append('/api/termodom/xiaomi')
     auth = 'Basic ' + base64.b64encode(f'{user}:{password}'.encode()).decode()
     def request(path, authorization=auth, method='GET'):
         req = urllib.request.Request(f'http://127.0.0.1:{api_port}/{path}', method=method)
@@ -79,6 +81,10 @@ def verify(engine, android_json=False):
             assert json.loads(request('api/termodom/session')[1]) == {}, 'Unexpected saved account.'
             assert request('api/log')[0] == 404, 'Engine logs must not be exposed.'
             assert request('api/config')[0] == 404, 'Engine raw configuration must not be exposed.'
+            assert request('api/termodom/xiaomi?src=not-registered', None)[0] == 401, 'Control route failed local authentication.'
+            assert request('api/termodom/xiaomi?src=not-registered')[0] == (403 if controls else 404), 'Control route accepted an unregistered camera.'
+            for forbidden in ('api/xiaomi/raw', 'api/xiaomi/command', 'api/xiaomi/miot'):
+                assert request(forbidden)[0] == 404, 'A generic command endpoint was exposed.'
             assert request('')[0] == 404, 'A browser UI must not be exposed.'
             # Registering a synthetic RTSP source changes only in-memory state;
             # it does not connect to that source until a consumer starts playback.
@@ -94,7 +100,7 @@ def verify(engine, android_json=False):
                              and line.split()[3] == 'LISTENING']
                 assert len(listeners) == 2, f'Unexpected native listener count: {len(listeners)}'
                 assert all(address.startswith('127.0.0.1:') for address in listeners), 'Native engine exposed a LAN listener.'
-            print('TERMODOM_CAMERA_ENGINE_OK: ' + ('Android escaped-slash JSON' if android_json else 'Windows JSON') + '; HTTP and RTSP deny missing/wrong credentials; authenticated requests pass; two loopback-only listeners; no web UI/log/config endpoints; memory-only config; Xiaomi controlCommands=0')
+            print('TERMODOM_CAMERA_ENGINE_OK: ' + ('Android escaped-slash JSON' if android_json else 'Windows JSON') + ('; five private routes' if controls else '; legacy four private routes') + '; HTTP and RTSP deny missing/wrong credentials; authenticated requests pass; two loopback-only listeners; no web UI/log/config/raw-command endpoints; memory-only config; Xiaomi controlCommands=0')
         finally:
             child.terminate()
             try:
@@ -127,4 +133,5 @@ if __name__ == '__main__':
     arguments = parser.parse_args()
     verify(arguments.engine)
     verify(arguments.engine, android_json=True)
+    verify(arguments.engine, controls=False)
     verify_fail_closed(arguments.engine)

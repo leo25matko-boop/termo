@@ -9,6 +9,13 @@ public partial class App : Application
         base.OnStartup(e);
         try
         {
+            var viewerFixture = e.Args.FirstOrDefault(x => x.StartsWith("--verify-viewer="))?.Split('=', 2)[1];
+            if (viewerFixture != null)
+            {
+                await NativeViewerVerification.Run(viewerFixture);
+                Shutdown(0);
+                return;
+            }
             var decoderFixture = e.Args.FirstOrDefault(x => x.StartsWith("--verify-decoder="))?.Split('=', 2)[1];
             if (decoderFixture != null)
             {

@@ -84,8 +84,9 @@ func decodeTermodomPipeJSON(data []byte) ([]byte, error) {
     rtspAddress, rtspOK := privateTermodomListener(rtspCfg)
     if !apiOK || !rtspOK || apiAddress == rtspAddress || apiCfg["local_auth"] != true { return nil, invalid }
     paths, ok := apiCfg["allow_paths"].([]any)
-    if !ok || len(paths) != 4 { return nil, invalid }
+    if !ok || (len(paths) != 4 && len(paths) != 5) { return nil, invalid }
     expected := map[string]bool{"/api":true,"/api/xiaomi":true,"/api/streams":true,"/api/termodom/session":true}
+    if len(paths) == 5 { expected["/api/termodom/xiaomi"] = true }
     for _, raw := range paths {
         name, ok := raw.(string)
         if !ok || !expected[name] { return nil, invalid }
@@ -117,7 +118,7 @@ func privateTermodomListener(cfg map[string]any) (string, bool) {
     # 4. Authenticated, allowlisted private JSON session export; never a web UI.
     xiaomi = destination / 'internal/xiaomi/xiaomi.go'
     replace_once(xiaomi, '\tapi.HandleFunc("api/xiaomi", apiXiaomi)',
-                 '\tapi.HandleFunc("api/xiaomi", apiXiaomi)\n\tapi.HandleFunc("api/termodom/session", apiTermodomSession)')
+                 '\tapi.HandleFunc("api/xiaomi", apiXiaomi)\n\tapi.HandleFunc("api/termodom/session", apiTermodomSession)\n\tapi.HandleFunc("api/termodom/xiaomi", apiTermodomControls)')
     with xiaomi.open('a', encoding='utf-8', newline='\n') as output:
         output.write('''
 
@@ -134,6 +135,34 @@ func apiTermodomSession(w http.ResponseWriter, r *http.Request) {
 }
 ''')
 
+    # Restricted model-derived camera settings and bounded, known-model PTZ.
+    camera_templates = Path(__file__).resolve().parent / 'camera'
+    for filename in ('termodom_controls.go', 'termodom_controls_test.go', 'termodom_ptz.go'):
+        (destination / 'internal/xiaomi' / filename).write_bytes((camera_templates / filename).read_bytes())
+    for filename in ('termodom_motor.go', 'termodom_motor_test.go'):
+        (destination / 'pkg/xiaomi/miss' / filename).write_bytes((camera_templates / filename).read_bytes())
+    replace_once(destination / 'internal/streams/stream.go', 'func (s *Stream) Sources() []string {', '''// TermodomConnections returns only active native producers for model-gated PTZ.
+func (s *Stream) TermodomConnections() []core.Producer {
+    s.mu.Lock()
+    defer s.mu.Unlock()
+    var conns []core.Producer
+    for _, producer := range s.producers {
+        producer.mu.Lock()
+        if producer.conn != nil { conns = append(conns, producer.conn) }
+        producer.mu.Unlock()
+    }
+    return conns
+}
+
+func (s *Stream) Sources() []string {''')
+    replace_once(destination / 'pkg/xiaomi/miss/client.go', '"net/url"\n', '"net/url"\n\t"sync"\n')
+    replace_once(destination / 'pkg/xiaomi/miss/client.go', '\treturn &Client{Conn: conn, key: key, model: model}, nil',
+                 '\tclient := &Client{Conn: conn, key: key, model: model, motorReplies: make(chan bool, 4)}\n\tgo client.readTermodomReplies()\n\treturn client, nil')
+    replace_once(destination / 'pkg/xiaomi/miss/client.go', '\tmodel string\n}', '\tmodel string\n\tmotorMutex sync.Mutex\n\tmotorReplies chan bool\n}')
+    (destination / 'LICENSE-homebridge-xiaomi-go2rtc.txt').write_bytes((camera_templates / 'LICENSE-homebridge-xiaomi-go2rtc.txt').read_bytes())
+    for filename in ('termodom_tls.go', 'termodom_tls_test.go'):
+        (destination / filename).write_bytes((camera_templates / filename).read_bytes())
+
     # The original all-in-one program imports many unrelated network services.
     # This native transport builds only the required camera API, RTSP and Xiaomi.
     (destination / 'main.go').write_text('''package main
@@ -148,7 +177,8 @@ import (
 )
 
 func main() {
-    app.Version = "1.9.14-termodom1"
+    if termodomTLSCLI() { return }
+    app.Version = "1.9.14-termodom2"
     app.Init()
     api.Init()
     streams.Init()
@@ -161,7 +191,11 @@ func main() {
     (destination / 'TERMODOM-PATCHES.txt').write_text(
         'Pinned upstream: ' + COMMIT + '\nArchive SHA256: ' + ARCHIVE_SHA256 + '\n'
         'Changes: authenticated RTSP on loopback; encoded Xiaomi two-factor query; '
-        'stdin and memory-only config; authenticated session export; camera-only main.\n', encoding='utf-8')
+        'strict JSON stdin and memory-only config; authenticated session export; camera-only main; '
+        'fixed-public-schema strict system HTTPS diagnostic before app initialization; '
+        'restricted model-derived MIoT settings and known-model bounded motor steps.\n'
+        'MIT protocol/PTZ reference: moguennouni/homebridge-xiaomi-go2rtc at '
+        '66da2a01eb3a31d100c0fea39901b1683aa4c2e8; preserve its bundled license.\n', encoding='utf-8')
     print(f'CAMERA_SOURCE_VERIFIED: {COMMIT}; sha256={ARCHIVE_SHA256}; destination={destination}')
 
 def add_tests(destination):
@@ -268,6 +302,23 @@ func TestTermodomPipeRejectsMalformedOrInsecureConfiguration(t *testing.T) {
     }
     for _, source := range invalid {
         if _, err := decodeTermodomPipeJSON([]byte(source)); err == nil { t.Fatal("invalid pipe config was accepted") } else if strings.Contains(err.Error(), "TOPSECRET") { t.Fatal("private input leaked through error") }
+    }
+}
+
+func TestTermodomPipeAllowsOnlyOptionalKnownControlRoute(t *testing.T) {
+    var cfg map[string]any
+    if err := json.Unmarshal(termomdomTestPipeConfig(), &cfg); err != nil { t.Fatal(err) }
+    apiCfg := cfg["api"].(map[string]any)
+    paths := apiCfg["allow_paths"].([]any)
+    apiCfg["allow_paths"] = append(paths, "/api/termodom/xiaomi")
+    data, _ := json.Marshal(cfg)
+    android := strings.ReplaceAll(string(data), "/", "\\\\/")
+    for _, raw := range []string{string(data), android} {
+        if _, err := decodeTermodomPipeJSON([]byte(raw)); err != nil { t.Fatal("known optional control route rejected", err) }
+    }
+    for _, forbidden := range []string{"/api/log", "/api/config", "/api/xiaomi/command", "/api/xiaomi/raw"} {
+        changed := strings.Replace(string(data), "/api/termodom/xiaomi", forbidden, 1)
+        if _, err := decodeTermodomPipeJSON([]byte(changed)); err == nil { t.Fatal("unapproved extra route enabled") }
     }
 }
 ''', encoding='utf-8', newline='\n')

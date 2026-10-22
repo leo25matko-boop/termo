@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace TermoDom;
 
@@ -68,7 +69,7 @@ public sealed class CameraEngine : IAsyncDisposable
         {
             ["app"] = new { modules = new[] { "api", "rtsp", "xiaomi" } },
             ["api"] = new { listen = $"127.0.0.1:{apiPort}", username = apiUser, password = apiPassword,
-                local_auth = true, origin = "", allow_paths = new[] { "/api", "/api/xiaomi", "/api/streams", "/api/termodom/session" } },
+                local_auth = true, origin = "", allow_paths = new[] { "/api", "/api/xiaomi", "/api/streams", "/api/termodom/session", "/api/termodom/xiaomi" } },
             ["rtsp"] = new { listen = $"127.0.0.1:{rtspPort}", username = rtspUser, password = rtspPassword },
             ["webrtc"] = new { listen = "" },
             ["log"] = new { level = "disabled", output = "" },
@@ -221,6 +222,57 @@ public sealed class CameraEngine : IAsyncDisposable
     {
         await gate.WaitAsync(ct);
         try { await StopStreamCoreAsync(ct); }
+        finally { gate.Release(); }
+    }
+
+    public async Task<JsonObject> GetControlsAsync(CancellationToken ct = default)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            if (streamName.Length == 0 || client is null)
+                throw new CameraEngineException("Najprije odaberite kameru.");
+            using var response = await client.GetAsync("api/termodom/xiaomi?src=" + Uri.EscapeDataString(streamName), HttpCompletionOption.ResponseHeadersRead, ct);
+            return JsonNode.Parse(await SuccessfulBodyAsync(response, ct)) as JsonObject
+                ?? throw new CameraEngineException("Postavke kamere nisu dostupne.");
+        }
+        catch (CameraEngineException) { throw; }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception) { throw new CameraEngineException("Postavke kamere nisu dostupne. Provjerite vezu i prijavu."); }
+        finally { gate.Release(); }
+    }
+
+    public Task<JsonObject> SetControlAsync(string id, JsonNode? value, CancellationToken ct = default) =>
+        SendControlAsync(new JsonObject { ["id"] = id, ["value"] = value?.DeepClone() }, ct);
+
+    public Task<JsonObject> MoveCameraAsync(string direction, CancellationToken ct = default)
+    {
+        if (direction is not ("left" or "right" or "up" or "down"))
+            throw new CameraEngineException("Smjer kamere nije valjan.");
+        return SendControlAsync(new JsonObject { ["id"] = "ptz", ["direction"] = direction }, ct);
+    }
+
+    private async Task<JsonObject> SendControlAsync(JsonObject payload, CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            if (streamName.Length == 0 || client is null)
+                throw new CameraEngineException("Najprije odaberite kameru.");
+            payload["src"] = streamName;
+            using var request = new HttpRequestMessage(HttpMethod.Post, "api/termodom/xiaomi")
+            { Content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json") };
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+            if ((int)response.StatusCode == 429)
+                throw new CameraEngineException("Pričekajte trenutak između pomaka kamere.");
+            if (response.StatusCode == HttpStatusCode.Conflict)
+                throw new CameraEngineException("Ta kontrola trenutačno nije spremna. Za pomicanje otvorite prikaz uživo.");
+            return JsonNode.Parse(await SuccessfulBodyAsync(response, ct)) as JsonObject
+                ?? throw new CameraEngineException("Kamera nije potvrdila postavku.");
+        }
+        catch (CameraEngineException) { throw; }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception) { throw new CameraEngineException("Zahtjev kameri nije dovršen. Osvježite njezine postavke."); }
         finally { gate.Release(); }
     }
     private async Task StopStreamCoreAsync(CancellationToken ct)
