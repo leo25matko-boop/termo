@@ -33,12 +33,12 @@ import java.util.regex.Pattern;
 /** Android Canvas chart: no HTML, JavaScript engine, browser, or web renderer. */
 public final class NativeChartView extends View {
     private static final int[] COLORS = {
-        0xff759a61, 0xffd69c6e, 0xff7fa8b2, 0xffa696bd, 0xffb6ac5d, 0xffbd7c80
+        0xff74d1c0, 0xffe9b86e, 0xff7ab8ed, 0xffc2a1e6, 0xffd7ce7f, 0xffe798a0
     };
-    private static final int INK = 0xff314d43;
-    private static final int MUTED = 0xff7c9186;
-    private static final int GRID = 0xffe7eee7;
-    private static final int ALARM = 0xffbc5548;
+    private static final int INK = 0xffedf4f6;
+    private static final int MUTED = 0xff9eafbd;
+    private static final int GRID = 0xff314251;
+    private static final int ALARM = 0xfff08b80;
     private static final Pattern RGB = Pattern.compile("rgba?\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)(?:\\s*,\\s*([\\d.]+))?\\s*\\)", Pattern.CASE_INSENSITIVE);
     private static final Pattern TIME = Pattern.compile("\\d{2}:\\d{2}");
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -126,21 +126,27 @@ public final class NativeChartView extends View {
             try {
                 int r = Integer.parseInt(rgb.group(1)), g = Integer.parseInt(rgb.group(2)), b = Integer.parseInt(rgb.group(3));
                 int a = rgb.group(4) == null ? 255 : Math.round(Float.parseFloat(rgb.group(4)) * 255);
-                if (r <= 255 && g <= 255 && b <= 255 && a >= 0 && a <= 255) return Color.argb(a, r, g, b);
+                if (r <= 255 && g <= 255 && b <= 255 && a >= 0 && a <= 255) return readable(Color.argb(a, r, g, b));
             } catch (NumberFormatException ignored) { }
         }
         try {
             if (raw.matches("#[a-fA-F0-9]{3}")) raw = "#" + raw.charAt(1) + raw.charAt(1) + raw.charAt(2) + raw.charAt(2) + raw.charAt(3) + raw.charAt(3);
             if (raw.matches("#[a-fA-F0-9]{8}")) {
                 // CSS is #RRGGBBAA, while Android's parseColor expects #AARRGGBB.
-                return Color.argb(Integer.parseInt(raw.substring(7, 9), 16), Integer.parseInt(raw.substring(1, 3), 16),
-                    Integer.parseInt(raw.substring(3, 5), 16), Integer.parseInt(raw.substring(5, 7), 16));
+                return readable(Color.argb(Integer.parseInt(raw.substring(7, 9), 16), Integer.parseInt(raw.substring(1, 3), 16),
+                    Integer.parseInt(raw.substring(3, 5), 16), Integer.parseInt(raw.substring(5, 7), 16)));
             }
             if ("orange".equalsIgnoreCase(raw)) return 0xffffa500;
             if (raw.matches("#[a-fA-F0-9]{6}") ||
-                raw.matches("(?i)red|green|blue|yellow|orange|cyan|magenta|black|white|gray|grey|transparent")) return Color.parseColor(raw);
+                raw.matches("(?i)red|green|blue|yellow|orange|cyan|magenta|black|white|gray|grey|transparent")) return readable(Color.parseColor(raw));
         } catch (IllegalArgumentException ignored) { }
         return COLORS[Math.floorMod(index, COLORS.length)];
+    }
+
+    private static int readable(int color) {
+        float[] hsv=new float[3];Color.colorToHSV(color,hsv);
+        if(hsv[2]<.7f){hsv[2]=.85f;hsv[1]=Math.min(hsv[1],.72f);}
+        return Color.HSVToColor(Color.alpha(color),hsv);
     }
 
     private float dp(float value) { return value * density; }
@@ -338,7 +344,7 @@ public final class NativeChartView extends View {
         float selectedX = x(selected);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(dp(1));
-        paint.setColor(0xff91a695);
+        paint.setColor(0xff8bafba);
         paint.setPathEffect(new DashPathEffect(new float[]{dp(3), dp(3)}, 0));
         canvas.drawLine(selectedX, plot.top, selectedX, plot.bottom, paint);
         paint.setPathEffect(null);
@@ -365,7 +371,7 @@ public final class NativeChartView extends View {
         float left = Math.min(Math.max(dp(8), selectedX - width / 2), getWidth() - dp(8) - width);
         float top = plot.top + dp(5);
         RectF box = new RectF(left, top, left + width, top + height);
-        paint.setColor(0xf5314d43);
+        paint.setColor(0xf50d1520);
         canvas.drawRoundRect(box, dp(10), dp(10), paint);
         paint.setColor(Color.WHITE);
         paint.setTextAlign(Paint.Align.LEFT);

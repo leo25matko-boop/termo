@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.TermoDom" parent="android:style/Theme.Material.Light.NoActionBar">
+    <style name="Theme.TermoDom" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:colorAccent">#153D35</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:colorAccent">#74D1C0</item>
+        <item name="android:colorControlNormal">#9EAFBD</item>
+        <item name="android:colorButtonNormal">#223B40</item>
+        <item name="android:textColorPrimary">#EDF4F6</item>
+        <item name="android:textColorSecondary">#9EAFBD</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowActionModeOverlay">true</item>
-        <item name="android:windowBackground">#F5F6F2</item>
+        <item name="android:windowBackground">#0D1520</item>
+        <item name="android:colorBackground">#182432</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:forceDarkAllowed">false</item>
     </style>

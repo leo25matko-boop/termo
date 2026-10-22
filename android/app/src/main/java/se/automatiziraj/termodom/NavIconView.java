@@ -20,6 +20,9 @@ public final class NavIconView extends View {
             case 1: path.moveTo(3,7);path.lineTo(12,2);path.lineTo(21,7);path.lineTo(12,12);path.close();path.moveTo(3,12);path.lineTo(12,17);path.lineTo(21,12);path.moveTo(3,17);path.lineTo(12,22);path.lineTo(21,17);break;
             case 2: c.drawRoundRect(3,5,21,21,2,2,p);path.moveTo(7,2);path.lineTo(7,8);path.moveTo(17,2);path.lineTo(17,8);path.moveTo(3,11);path.lineTo(21,11);path.moveTo(7,15);path.lineTo(9,15);path.moveTo(15,15);path.lineTo(17,15);path.moveTo(7,18);path.lineTo(9,18);break;
             case 3: path.moveTo(3,3);path.lineTo(3,21);path.lineTo(22,21);path.moveTo(6,16);path.lineTo(10,11);path.lineTo(14,14);path.lineTo(20,5);break;
+            case 5: c.drawCircle(12,10,4,p);for(int n=0;n<8;n++){double a=n*Math.PI/4;path.moveTo(12+(float)Math.cos(a)*6,10+(float)Math.sin(a)*6);path.lineTo(12+(float)Math.cos(a)*8,10+(float)Math.sin(a)*8);}path.moveTo(4,21);path.lineTo(20,21);path.moveTo(7,17);path.lineTo(6,21);path.moveTo(17,17);path.lineTo(18,21);break;
+            case 6: c.drawRoundRect(3,7,21,20,3,3,p);c.drawCircle(12,13,4,p);path.moveTo(7,7);path.lineTo(9,3);path.lineTo(15,3);path.lineTo(17,7);break;
+            case 7: c.drawCircle(5,12,1,p);c.drawCircle(12,12,1,p);c.drawCircle(19,12,1,p);break;
             default: c.drawCircle(12,12,4,p);c.drawCircle(12,12,8,p);for(int n=0;n<8;n++){double a=n*Math.PI/4;path.moveTo(12+(float)Math.cos(a)*8,12+(float)Math.sin(a)*8);path.lineTo(12+(float)Math.cos(a)*11,12+(float)Math.sin(a)*11);}break;
         }
         c.drawPath(path,p);c.restore();

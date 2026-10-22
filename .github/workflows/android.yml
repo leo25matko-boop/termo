@@ -59,6 +59,23 @@ jobs:
         working-directory: android
         run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease -PtermodomUnsigned=true --no-daemon --stacktrace
 
+      - name: Verify APK contains native screens only
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          apk = Path('android/app/build/outputs/apk/release/app-release-unsigned.apk')
+          with zipfile.ZipFile(apk) as archive:
+              assert archive.testzip() is None, 'APK ZIP integrity failed'
+              names = archive.namelist()
+              assert not any(name.startswith('assets/') or name.lower().endswith(('.html', '.js', '.mjs')) for name in names), 'Web assets were packaged'
+              dex = b''.join(archive.read(name) for name in names if name.endswith('.dex'))
+              assert b'Landroid/webkit/WebView;' not in dex, 'WebView class reference found'
+              for native in ('MainActivity', 'TemperatureDialView', 'NativeChartView', 'HeatingRepository', 'SolarRepository'):
+                  assert ('Lse/automatiziraj/termodom/' + native + ';').encode() in dex, 'Missing native class: ' + native
+          print('TERMODOM_NATIVE_APK_OK: no WebView, HTML, JavaScript, or packaged web assets')
+          PY
+
       - name: Upload APK for private signing
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

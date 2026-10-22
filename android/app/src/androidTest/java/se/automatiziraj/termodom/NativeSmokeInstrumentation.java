@@ -54,6 +54,19 @@ public final class NativeSmokeInstrumentation extends Instrumentation {
                             output.toString(StandardCharsets.UTF_8.name()));
                 }
             });
+            // This is generated test data, never a real station token or URL.
+            MainActivity.testSolarData = new org.json.JSONObject()
+                    .put("stationName", "Solarna elektrana · provjera")
+                    .put("fetchedAt", "2026-10-22T12:00:00Z")
+                    .put("powerKw", 2.48).put("dailyKwh", 14.17)
+                    .put("monthKwh", 945.81).put("yearKwh", 17399.06).put("totalKwh", 25922.32)
+                    .put("co2Kg", 12313.10).put("coalKg", 10368.93).put("trees", 17)
+                    .put("chart", new org.json.JSONObject().put("id", "solar")
+                            .put("title", "Proizvodnja električne energije").put("unit", "kW")
+                            .put("labels", new org.json.JSONArray().put("08:00").put("09:00").put("10:00").put("11:00").put("12:00"))
+                            .put("datasets", new org.json.JSONArray().put(new org.json.JSONObject()
+                                    .put("label", "Proizvodnja").put("borderColor", "#e6b55d").put("stepped", false)
+                                    .put("data", new org.json.JSONArray().put(0).put(0.4).put(org.json.JSONObject.NULL).put(1.5).put(2.48)))));
             Intent launch = new Intent(getTargetContext(), MainActivity.class);
             launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             activity = startActivitySync(launch);
@@ -84,9 +97,24 @@ public final class NativeSmokeInstrumentation extends Instrumentation {
             verifyNativeHierarchy();
             capture("05-postavke");
 
+            openModule("solar");
+            waitFor("solar", () -> hasClass(activity.getWindow().getDecorView(), "se.automatiziraj.termodom.NativeChartView"));
+            verifyNativeHierarchy();
+            capture("06-solarna-elektrana");
+
+            openModule("camera");
+            waitFor("camera", () -> hasText(activity.getWindow().getDecorView(), "Xiaomi"));
+            verifyNativeHierarchy();
+            capture("07-kamera");
+
+            openModule("upcoming");
+            waitFor("upcoming", () -> hasText(activity.getWindow().getDecorView(), "priprem"));
+            verifyNativeHierarchy();
+            capture("08-priprema");
+
             check(requests.get() >= 5, "Expected fixture reads for every controller area.");
             String liveReport = liveReadReport();
-            result.putString("stream", "\nTERMODOM_NATIVE_SMOKE_OK: 5 native screens; 24 hourly sliders; native chart; fixture-only UI reads.\n" + liveReport);
+            result.putString("stream", "\nTERMODOM_NATIVE_SMOKE_OK: 8 native screens; 24 hourly sliders; heating and solar native charts; fixture-only UI reads; no external camera or login launch.\n" + liveReport);
             finish(Activity.RESULT_OK, result);
         } catch (Throwable error) {
             try { if (activity != null && evidenceDirectory != null) capture("failure"); } catch (Throwable ignored) { }
@@ -129,6 +157,19 @@ public final class NativeSmokeInstrumentation extends Instrumentation {
         });
         if (failure.get() != null) throw new AssertionError("Navigation failed", failure.get());
         waitFor(screen, () -> countNativeViews(activity.getWindow().getDecorView()) >= 10);
+    }
+
+    private void openModule(String screen) throws Exception {
+        navigate("overview");
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        runOnMainSync(() -> {
+            try {
+                View module = findDescription(activity.getWindow().getDecorView(), "module-" + screen);
+                check(module != null, "Missing native home module: " + screen);
+                check(module.performClick(), "Home module is not clickable: " + screen);
+            } catch (Throwable error) { failure.set(error); }
+        });
+        if (failure.get() != null) throw new AssertionError("Opening module failed", failure.get());
     }
 
     private interface Condition { boolean isReady(); }
@@ -211,6 +252,15 @@ public final class NativeSmokeInstrumentation extends Instrumentation {
             for (int index = 0; index < group.getChildCount(); index++) result += countNativeViews(group.getChildAt(index));
         }
         return result;
+    }
+
+    private static boolean hasText(View root, String expected) {
+        if (root instanceof TextView && ((TextView) root).getText().toString().contains(expected)) return true;
+        if (root instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) root;
+            for (int index = 0; index < group.getChildCount(); index++) if (hasText(group.getChildAt(index), expected)) return true;
+        }
+        return false;
     }
 
     private static int countSeekBars(View root) {
