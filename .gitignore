@@ -17,3 +17,13 @@ android/app/src/main/assets/
 *.keystore
 *.p12
 signing.properties
+windows/bin/
+windows/obj/
+windows/publish/
+windows/installer-output/
+windows/verification/
+windows/native-verification-error/
+windows/core-tests/
+**/connections.json
+**/camera-session*
+*.termodom

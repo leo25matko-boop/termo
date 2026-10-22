@@ -1,9 +1,6 @@
-name: Windows desktop installer
+name: Legacy Windows 1.0 Electron installer (manual only)
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       tag:

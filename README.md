@@ -1,5 +1,7 @@
 # TermoDom
 
+> Verzija 2.0 prelazi na izvorne Android i Windows aplikacije. Aktualne upute i način izrade nalaze se u [NATIVE-2.0.md](NATIVE-2.0.md). Odjeljci o Electronu i lokalnom web poslužitelju ispod opisuju arhiviranu verziju 1.0.
+
 Windows i Android aplikacija za upravljanje postojećim sustavom grijanja na [automatiziraj.se](https://automatiziraj.se/centralno/php/novo.php). Prikazuje stvarne temperature, rasporede i grafikone sustava.
 
 ## Android

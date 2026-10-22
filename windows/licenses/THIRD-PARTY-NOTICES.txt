@@ -1,0 +1,27 @@
+TermoDom Windows 2.0.0 third-party components
+
+The application uses dynamically linked, unmodified LibVLC and LibVLCSharp. Their
+DLLs remain separate in the installed application directory and may be replaced
+with compatible versions by the user. TermoDom imposes no restriction on reverse
+engineering for debugging changes to those LGPL components.
+
+VideoLAN.LibVLC.Windows 3.0.24: LGPL-2.1-or-later
+Source: https://code.videolan.org/videolan/vlc/-/tree/3.0.24
+Packaging: https://code.videolan.org/videolan/libvlc-nuget
+
+LibVLCSharp and LibVLCSharp.WPF 3.10.2: LGPL-2.1-or-later
+Source: https://code.videolan.org/videolan/LibVLCSharp/-/tree/3.10.2
+
+HtmlAgilityPack 1.11.71: MIT
+Copyright ZZZ Projects Inc. and contributors
+Source: https://github.com/zzzprojects/html-agility-pack/tree/v1.11.71
+
+.NET 8 Windows Desktop runtime: MIT and component-specific third-party notices
+Source: https://github.com/dotnet/runtime and https://github.com/dotnet/wpf
+
+The native camera transport is a pinned go2rtc-derived engine. See the LICENSE
+and patch/source information distributed in the camera/ directory. Xiaomi and
+Huawei services remain owned and operated by their respective providers.
+
+The accompanying license text files apply to these components. No Xiaomi or
+Huawei passwords, kiosk links or session tokens are included in the installer.
